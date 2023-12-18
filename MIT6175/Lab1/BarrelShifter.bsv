@@ -1,4 +1,4 @@
-import Vector::*;
+import Multiplexer::*;
 
 function Bit#(32) shiftRightPow2(Bit#(1) en, Bit#(32) unshifted, Integer power);
     Integer distance = 2**power;
@@ -17,11 +17,21 @@ endfunction
 
 // exxrcise 6
 function Bit#(32) barrelShifterRight(Bit#(32) in, Bit#(5) shiftBy);
-    Bit#(32) shifted = 0;
-    for (Integer k = 0; k < 32; k = k + 1) begin
-        if (k + 5 < 32) begin
-            shifted[k] = in[k + 5];
-        end
+    Bit#(32) unshifted=in;
+    for (Integer i=4;i>=0;i=i-1) begin
+        
+        Bit#(32) shifted = 0;
+        Integer j=2**i;
+        for(Integer k=0; k < 32 ; k=k+1) begin
+            if(k<=31-j) begin
+            shifted[k]=unshifted[j+k];
+            end else begin
+            shifted[k]=0;
+            end
+        end 
+
+
+        unshifted=multiplexer_n(shiftBy[i], unshifted, shifted);
     end
-    return shifted;
+    return unshifted;
 endfunction
