@@ -1,0 +1,10 @@
+# 1
+my one-bit multiplexer use 4 gates
+5-bit multiplexer is 5 multiplexer connected with the same sel wire, so 4*5=20
+n-bit multiplexer use 4*n gates
+# 2
+5*8=40
+3*(5*4)+4*5=80
+# 3
+8-bit ripple-carry adder: 8*A
+8-bit carry-select adder: 4*A+5*M
