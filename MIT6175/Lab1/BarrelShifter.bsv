@@ -59,8 +59,7 @@ function Bit#(32) barrelShifterRight(Bit#(32) in, Bit#(5) shiftBy);
     Bit#(32) unshifted=in;
     for (Integer i=4;i>=0;i=i-1) begin
         Bit#(5) j=0;j[i]=1;
-        Bit#(32) shifted=0;
-        shifted=shifted | unshifted[31:j];
+        Bit#(32) shifted = unshifted[31:j];
         unshifted=multiplexer_n(shiftBy[i], unshifted, shifted);
     end
     return unshifted;

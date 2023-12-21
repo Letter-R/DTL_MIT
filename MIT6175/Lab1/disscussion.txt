@@ -7,4 +7,4 @@ n-bit multiplexer use 4*n gates
 3*(5*4)+4*5=80
 # 3
 8-bit ripple-carry adder: 8*A
-8-bit carry-select adder: 4*A+5*M
+8-bit carry-select adder: 4*A+M
