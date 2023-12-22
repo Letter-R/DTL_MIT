@@ -1,8 +1,13 @@
+import Ehr::*;
+import Vector::*;
+import FIFO::*;
+
 interface Fifo#(numeric type n, type t);
     method Action enq(t x);
     method Action deq;
     method t first;
     method Bool notEmpty;
+    method Bool notFull;
 endinterface
 
 
@@ -14,20 +19,6 @@ module mkFifo(Fifo#(3,t)) provisos (Bits#(t,tSz));
     d[1] <- mkRegU();
     d[2] <- mkRegU();
     Reg#(Bit#(3)) v <- mkReg(0);
-
-    // fix
-    rule canonicalize;
-        if (v[2] && !v[1]) begin
-            d[1]<=d[2];
-            v[2]<=0;
-            v[1]<=1;
-        end
-        if (v[1] && !v[0]) begin
-            d[0]<=d[1];
-            v[1]<=0;
-            v[0]<=1;
-        end
-    endrule
 
     // Enq if there's at least one spot open... so, dc is invalid.
     method Action enq(t x) if (v[2] == 0);
