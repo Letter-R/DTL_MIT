@@ -1,3 +1,10 @@
 Q1
 A1:
+The standard library's FIFO may be using CF registers, allowing more rules executed in one cycle.
+It might use references/pointers for data transfer instead of value passing, improving the speed.
 
+Q2
+A2:
+Adding a one-cycle gap between two inputs,
+If there is no added gap between results, it is Elastic.
+If there is no added gap between results, it is Inelastic.

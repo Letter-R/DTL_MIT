@@ -143,12 +143,12 @@ module mkFftElasticPipeline(Fft);
     FIFOF#(Vector#(FftPoints, ComplexData)) fifo2 <- mkFIFOF;
     FIFOF#(Vector#(FftPoints, ComplexData)) outFifo <- mkFIFOF;
     
-    
+    */
     Fifo#(3,Vector#(FftPoints, ComplexData)) inFifo <- mkFifo;
     Fifo#(3,Vector#(FftPoints, ComplexData)) fifo1 <- mkFifo;
     Fifo#(3,Vector#(FftPoints, ComplexData)) fifo2 <- mkFifo;
     Fifo#(3,Vector#(FftPoints, ComplexData)) outFifo <- mkFifo;
-    
+    /*
     Fifo#(2,Vector#(FftPoints, ComplexData)) inFifo <- mkCFFifo;
     Fifo#(2,Vector#(FftPoints, ComplexData)) fifo1 <- mkCFFifo;
     Fifo#(2,Vector#(FftPoints, ComplexData)) fifo2 <- mkCFFifo;
