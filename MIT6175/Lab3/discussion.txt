@@ -1,0 +1,30 @@
+1
+Yes
+       signed  unsigned
+81*-1   -81     20655
+81*255  65455   20655
+
+for unsigned 8 bit, -1 and 255 are the same '1111 1111'
+so "81 * -1" and "81 * 255" equal to 20655
+for signed 8 bit, 
+-81 Original   code: 0000,0000,0101,0001
+    Reverse    code: 1111,1111,1010,1110
+    Complement code: 1111,1111,1010,1111
+65455 is 1111,1111,1010,1111   _|
+
+2
+Error:
+  Bit vector of unknown size introduced near this location.
+  Please remove unnecessary extensions, truncations and concatenations and/or
+  provide more type information to resolve this ambiguity.
+By define the test_function
+
+In Templates:
+    function Bit#(TAdd#(n,n)) test_function( Bit#(n) a, Bit#(n) b ),
+    function Bit#(TAdd#(n,n)) ref_function( Bit#(n) a, Bit#(n) b ),
+So compiler can inference the other n
+
+3
+unsigned
+
+4
