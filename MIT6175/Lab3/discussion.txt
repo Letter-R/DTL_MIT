@@ -28,3 +28,17 @@ So compiler can inference the other n
 unsigned
 
 4
+ Current | Previous | Original Booth | Radix-4 Booth
+   Bits  |   Bit    | 	Encoding 	|	 Encoding
+    00	    0		        00              00
+    00	    1		        0+              0+
+    01	    0	            +-	            0+
+    01	    1		        +0              +0
+    10	    0		        -0              -0
+    10	    1		        -+              0-
+    11	    0		        0-              0-
+    11	    1	            00              00
+
+5
+a Radix-8 Booth multiplier can reduce the number of iterations, but increases the logic circuit complexity, so performance improvement is limited. 
+Radix-4 Booth multipliers are more commonly used.

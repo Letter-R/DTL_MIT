@@ -22,6 +22,8 @@ function Bit#(TAdd#(n,1)) add_unsigned( Bit#(n) a, Bit#(n) b );
     return pack( add_uint );
 endfunction
 
+// arithmetic right shift
+// keep sign bit
 function Bit#(n) shr_signed( Bit#(n) a, Integer x );
     Int#(n) a_int = unpack(a);
     Int#(n) shr_int = a_int >> x;
@@ -110,31 +112,29 @@ module mkBoothMultiplier( Multiplier#(n) );
     Reg#(Bit#(TAdd#(TAdd#(n,n),1))) p <- mkRegU;
     Reg#(Bit#(TAdd#(TLog#(n),1))) i <- mkReg( fromInteger(valueOf(n)+1) );
 
-    rule mul_step( /* guard goes here */ i < fromInteger(valueOf(n)));
+    rule mul_step (i < fromInteger(valueOf(n)));
         // TODO: Implement this in Exercise 6
-        Bit#(TAdd#(TAdd#(n,n),1)) sum = p;
-        if (p[1:0] == 2'b01) begin
-            sum = p + m_pos;
-        end else if (p[1:0] == 2'b10) begin
-            sum = p + m_neg;
-        end 
-
-        p <= shr_signed(sum, 1);
+        Bit#(TAdd#(TAdd#(n,n),1)) tmp=?;
+        case (p[1:0])
+            2'b01: tmp = p+m_pos;
+            2'b10: tmp = p+m_neg;
+            2'b00,2'b11: tmp = p;
+        endcase
+        p<=shr_signed(tmp,1);
         i <= i+1;
-
     endrule
 
     method Bool start_ready();
         // TODO: Implement this in Exercise 6
-        return i == fromInteger(valueOf(n)+1);
+        return i==fromInteger(valueOf(n)+1);
     endmethod
 
     method Action start( Bit#(n) m, Bit#(n) r );
         // TODO: Implement this in Exercise 6
-        m_neg <= {(-m), 0};
-        m_pos <= {m, 0};
-        p <= {0, r, 1'b0};
-        i <= 0;
+        m_pos<={m,0};
+        m_neg<={(-m),0};
+        p<={0,r,1'b0};
+        i<=0;
     endmethod
 
     method Bool result_ready();
@@ -144,8 +144,8 @@ module mkBoothMultiplier( Multiplier#(n) );
 
     method ActionValue#(Bit#(TAdd#(n,n))) result();
         // TODO: Implement this in Exercise 6
-        i <= i+1;
-        return p[?:1];
+        i<=i+1;
+        return truncateLSB(p);
     endmethod
 endmodule
 
@@ -160,23 +160,25 @@ module mkBoothMultiplierRadix4( Multiplier#(n) );
 
     rule mul_step( /* guard goes here */  i < fromInteger(valueOf(n)/2) );
         // TODO: Implement this in Exercise 8
-        Bit#(TAdd#(TAdd#(n,n),2)) sum = p;
-        if (p[2:0] == 3'b001) begin
-            sum = p + m_pos;
-        end else if (p[2:0] == 3'b010) begin
-            sum = p + m_pos;
-        end else if (p[2:0] == 3'b011) begin
-            sum = p + (m_pos << 1);
-        end else if (p[2:0] == 3'b100) begin
-            sum = p + (m_neg << 1);
-        end else if (p[2:0] == 3'b101) begin
-            sum = p + m_neg;
-        end else if (p[2:0] == 3'b110) begin
-            sum = p + m_neg;
-        end 
-
-        p <= shr_signed(sum, 2);
+        /// 00	    0		00
+        // 00	    1		0+
+        // 01	    0	    0+
+        // 01	    1		+0
+        // 10	    0		-0
+        // 10	    1		0-
+        // 11	    0		0-
+        /// 11	    1	    00
+        Bit#(TAdd#(TAdd#(n,n),2)) tmp=?;
+        case (p[2:0])
+            3'b001,3'b010: tmp = p+m_pos;
+            3'b011: tmp = p+(m_pos<<1);
+            3'b100: tmp = p+(m_neg<<1);
+            3'b101,3'b110: tmp = p+m_neg;
+            3'b000,3'b111: tmp = p;
+        endcase
+        p<=shr_signed(tmp,2);
         i <= i+1;
+
     endrule
 
     method Bool start_ready();
