@@ -1,0 +1,34 @@
+# 1
+notFull
+    read:         notFullF
+enq
+    read:         notFullF   enqP       deqP
+    written:      notFullF   notEmptyF  data    enqP
+    
+notEmpty
+    read:         notEmptyF
+deq
+    read:         notEmptyF  deqP       enqP
+    written:      notFullF   notEmptyF  enqP
+first
+    read:         notEmptyF  deqP       data
+clear
+    written:     enqP  deqP  notEmptyF  notFullF
+# 2
+           notFull    enq   notEmpty   deq   first  clear
+         +---------+-------+--------+-------+-----+-------+
+notFull  |    CF   |   <   |   CF   |   <   |  CF |   <   |
+         +---------+-------+--------+-------+-----+-------+
+enq      |    >    |   C   |   >    |   C   |  >  |   C   |
+         +---------+-------+--------+-------+-----+-------+
+notEmpty |    CF   |   <   |   CF   |   <   |  CF |   <   |
+         +---------+-------+--------+-------+-----+-------+
+deq      |    >    |   C   |   >    |   C   |  >  |   C   |
+         +---------+-------+--------+-------+-----+-------+
+first    |    CF   |   <   |   CF   |   <   |  CF |   <   |
+         +---------+-------+--------+-------+-----+-------+
+clear    |    >    |   C   |   >    |   C   |  >  |   C   |
+         +---------+-------+--------+-------+-----+-------+
+
+# 3
+

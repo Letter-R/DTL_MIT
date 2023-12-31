@@ -11,3 +11,6 @@ _deps
 **/buildDir
 todo
 sim**
+out**
+**Identifier
+bscdir
