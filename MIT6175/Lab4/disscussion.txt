@@ -9,7 +9,7 @@ notEmpty
     read:         notEmptyF
 deq
     read:         notEmptyF  deqP       enqP
-    written:      notFullF   notEmptyF  enqP
+    written:      notFullF   notEmptyF  deqP
 first
     read:         notEmptyF  deqP       data
 clear

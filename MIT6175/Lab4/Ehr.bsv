@@ -20,18 +20,24 @@ module mkEhr( t initVal, Ehr#(n,t) ifc ) provisos(Bits#(t, tSz));
     Reg#(t) ehrReg <- mkReg( initVal );
 
     // Allows read(i+1) to be in the same cycle as write(i)
+    // 数据存储在这些wire里
+    // 允许在一个clock cycle中write (wset) < read (wget)
+    // 必须先wset，才能wget
     Vector#(n, RWire#(t)) wires <- replicateM( mkUnsafeRWire );
 
     // Additional objects to force the requested schedule
     // These will both be optimized out during FPGA synthesis
+    // 用于控制schedule的额外模块，会被优化掉
     Vector#(n, Reg#(Bool)) virtual_reg <- replicateM( mkRevertingVirtualReg(False) );
     Vector#(n, RWire#(t)) ignored_wires <- replicateM( mkUnsafeRWire );
 
     Ehr#(n,t) ifc_to_return;
 
+    // 确保可执行？
     // These attributes are statically checked by the compiler
     (* fire_when_enabled *)         // WILL_FIRE == CAN_FIRE
     (* no_implicit_conditions *)    // CAN_FIRE == guard (True)
+    // 用index最大的wires更新ehrReg
     rule canonicalize;
         t val = ehrReg;
         for( Integer i = 0 ; i < valueOf(n) ; i = i + 1 ) begin
@@ -40,6 +46,7 @@ module mkEhr( t initVal, Ehr#(n,t) ifc ) provisos(Bits#(t, tSz));
         ehrReg <= val;
     endrule
 
+    // 生成接口
     for( Integer i = 0 ; i < valueOf(n) ; i = i + 1 ) begin
         ifc_to_return[i] =
             (interface Reg;
@@ -62,10 +69,13 @@ module mkEhr( t initVal, Ehr#(n,t) ifc ) provisos(Bits#(t, tSz));
                     // Gets the value to return
                     // Also ensures that write j < read i for j < i
                     t val = ehrReg;
+                    // val 等于index<=i的最大有效位wire的值
+                    // 如果i=0, 返回最大index的值（ehrReg）
                     for( Integer j = 0 ; j < i ; j = j+1 ) begin
                         val = fromMaybe( val, wires[j].wget );
                     end
 
+                    // 不会运行
                     // Helps ensure that read i < write j for i <= j
                     for( Integer j = i ; j < valueOf(n) ; j = j+1 ) begin
                         if( virtual_reg[j] ) begin
