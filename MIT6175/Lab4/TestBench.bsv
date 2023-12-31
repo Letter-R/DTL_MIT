@@ -22,12 +22,12 @@ module mkTbPipelineFunctional();
     let m <- mkTbFunctionalTemplate( fifo, Pipeline, has_clear );
 endmodule
 
-// (* synthesize *)
-// module mkTbBypassFunctional();
-//     Fifo#(3, Bit#(8)) fifo <- mkMyBypassFifo();
-//     Bool has_clear = True;
-//     let m <- mkTbFunctionalTemplate( fifo, Bypass, has_clear );
-// endmodule
+(* synthesize *)
+module mkTbBypassFunctional();
+    Fifo#(3, Bit#(8)) fifo <- mkMyBypassFifo();
+    Bool has_clear = True;
+    let m <- mkTbFunctionalTemplate( fifo, Bypass, has_clear );
+endmodule
 
 // (* synthesize *)
 // module mkTbCFFunctional();
@@ -63,11 +63,11 @@ module mkTbPipelineScheduling();
     let m <- mkTbSchedulingTemplate( mkMyPipelineFifo, Pipeline, has_clear );
 endmodule
 
-// (* synthesize *)
-// module mkTbBypassScheduling();
-//     Bool has_clear = True;
-//     let m <- mkTbSchedulingTemplate( mkMyBypassFifo, Bypass, has_clear );
-// endmodule
+(* synthesize *)
+module mkTbBypassScheduling();
+    Bool has_clear = True;
+    let m <- mkTbSchedulingTemplate( mkMyBypassFifo, Bypass, has_clear );
+endmodule
 
 // (* synthesize *)
 // module mkTbCFScheduling();

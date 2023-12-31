@@ -106,7 +106,7 @@ module mkMyPipelineFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
     endmethod
 
     // deq
-    //     read:         notEmptyF[0]  deqP[0]       enqP[1]
+    //     read:         notEmptyF[0]  deqP[0]       enqP[0]
     //     written:      notFullF[0]   notEmptyF[0]  deqP[0]
     method Bool notEmpty();
         return notEmptyF[0];
@@ -115,7 +115,7 @@ module mkMyPipelineFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
     method Action deq() if (notEmptyF[0]);
         Bit#(TLog#(n)) next_deqP=(deqP[0]==(nn-1))?(0):(deqP[0]+1);
         deqP[0]<=next_deqP;
-        notEmptyF[0]<=(enqP[1]!=next_deqP);
+        notEmptyF[0]<=(enqP[0]!=next_deqP);
         notFullF[0]<=True;
     endmethod
 
@@ -125,6 +125,63 @@ module mkMyPipelineFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
     endmethod
 
     // 
+    // 1 Reg会在下一个周期保留，所以最高位的ehrReg会保留到下一个周期，而wire中的数据不会
+    // 2 由于同一索引位是先读后写，而wire要求先写才能读，就导致先读低位读到的是索引以下的最高有效位，或者上一周期的最高位ehrReg
+    // 3 对于Ehr的任意位置，先读就是读最高有效位，先写后读才可以读到，当deq<enq时，deq使用[0]，enq使用[1]即可
+    // 4 clear要重置[2]而不能重置[1]是因为，如果重置[1]，[1]的wire是有效的，此时enq读取会读到[1]而不是deq写入的[0]位置
+    method Action clear();
+        enqP[2] <= 0;
+        deqP[2] <= 0;
+        notFullF[2] <= True;
+        notEmptyF[2] <= False;
+    endmethod
+endmodule
+
+
+// Pipeline FIFO
+module mkMyBypassFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
+    Vector#(n,Reg#(t)) data <- replicateM(mkRegU());
+    Ehr#(3,Bit#(TLog#(n))) enqP <- mkEhr(0);
+    Ehr#(3,Bit#(TLog#(n))) deqP <- mkEhr(0);
+    Ehr#(3,Bool) notFullF <- mkEhr(True);
+    Ehr#(3,Bool) notEmptyF <- mkEhr(False);
+
+    Bit#(TLog#(n)) nn =fromInteger(valueOf(n));
+
+    // enq
+    //     read:         notFullF[0]   enqP[0]       deqP[0]
+    //     written:      notFullF[0]   notEmptyF[0]  enqP[0]
+    method Bool notFull();
+        return notFullF[0];
+    endmethod
+
+    method Action enq(t x) if(notFullF[0]);
+        data[enqP[0]]<=x;   
+        Bit#(TLog#(n)) next_enqP=(enqP[0]==(nn-1))?(0):(enqP[0]+1);
+        enqP[0]<=next_enqP;
+        notFullF[0]<=(deqP[0]!=next_enqP);
+        notEmptyF[0]<=True;
+    endmethod
+
+    // deq
+    //     read:         notEmptyF[1]  deqP[1]       enqP[1]
+    //     written:      notFullF[1]   notEmptyF[0]  deqP[1]
+    method Bool notEmpty();
+        return notEmptyF[1];
+    endmethod
+
+    method Action deq() if (notEmptyF[1]);
+        Bit#(TLog#(n)) next_deqP=(deqP[1]==(nn-1))?(0):(deqP[1]+1);
+        deqP[1]<=next_deqP;
+        notEmptyF[1]<=(enqP[1]!=next_deqP);
+        notFullF[1]<=True;
+    endmethod
+
+    // first < deq
+    method t first() if (notEmptyF[0]);
+        return data[deqP[1]];
+    endmethod
+
     method Action clear();
         enqP[2] <= 0;
         deqP[2] <= 0;
