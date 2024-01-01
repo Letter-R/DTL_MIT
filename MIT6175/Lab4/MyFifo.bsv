@@ -138,7 +138,7 @@ module mkMyPipelineFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
 endmodule
 
 
-// Pipeline FIFO
+// Bypass FIFO
 module mkMyBypassFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
     Vector#(n,Reg#(t)) data <- replicateM(mkRegU());
     Ehr#(3,Bit#(TLog#(n))) enqP <- mkEhr(0);
@@ -189,3 +189,86 @@ module mkMyBypassFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
         notEmptyF[2] <= False;
     endmethod
 endmodule
+
+
+
+// Conflict-free FIFO
+module mkMyCFFifo(Fifo#(n,t)) provisos (Bits#(t, a__));
+    // data
+    Vector#(n,Reg#(t)) data <- replicateM(mkRegU());
+    // regs, update at each canonicalize
+    Reg#(Bit#(TLog#(n))) enqP <- mkReg(0);
+    Reg#(Bit#(TLog#(n))) deqP <- mkReg(0);
+    Reg#(Bool) notFullF <- mkReg(True);
+    Reg#(Bool) notEmptyF <- mkReg(False);
+    // flag of method active
+    // deq和enq互不影响
+    // 本周期读取Reg，写入位置0
+    // canonicalize读取位置1,写入Reg
+    Ehr#(2,Maybe#(t)) venq <- mkEhr(tagged Invalid);
+    Ehr#(2,Bool) vdeq <- mkEhr(False);
+    Ehr#(2,Bool) vclear <- mkEhr(False);
+
+    Bit#(TLog#(n)) nn = fromInteger(valueOf(n));
+    
+    (* no_implicit_conditions *)
+    (* fire_when_enabled *)
+    rule canonicalize ( True );
+        // reset flags
+        venq[1] <= tagged Invalid;
+        vdeq[1] <= False;
+        vclear[1] <= False;
+
+        Bit#(TLog#(n)) next_deqP=(deqP==(nn-1))?(0):(deqP+1);
+        Bit#(TLog#(n)) next_enqP=(enqP==(nn-1))?(0):(enqP+1);
+
+        if (vclear[1]) begin                            // clear
+            // reset regs
+            enqP <= 0;
+            deqP <= 0;
+            notFullF <= True;
+            notEmptyF <= False;
+        end else if (isValid(venq[1]) && vdeq[1]) begin //enq+deq
+            data[enqP] <= fromMaybe(?, venq[1]);
+            enqP <= next_enqP;
+            deqP <= next_deqP;
+        end else if (isValid(venq[1])) begin            //enq
+            data[enqP] <= fromMaybe(?, venq[1]);
+            enqP <= next_enqP;
+
+            notFullF <= (next_enqP!=deqP);
+            notEmptyF <= True;
+        end else if (vdeq[1]) begin                     //deq
+            deqP <= next_deqP;
+
+            notFullF <= True;
+            notEmptyF <= (next_deqP!=enqP);
+        end
+    endrule
+
+    method Bool notFull();
+        return notFullF;
+    endmethod
+
+    method Action enq(t x) if(notFullF);
+        venq[0] <= tagged Valid x;
+    endmethod
+
+    method Bool notEmpty();
+        return notEmptyF;
+    endmethod
+
+    method Action deq() if (notEmptyF);
+        vdeq[0] <= True;
+    endmethod
+
+    method t first() if (notEmptyF);
+        return data[deqP];
+    endmethod
+
+    method Action clear();
+        vclear[0] <= True;
+    endmethod
+endmodule
+
+
