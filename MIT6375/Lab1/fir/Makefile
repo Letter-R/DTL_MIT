@@ -1,5 +1,6 @@
 bscflags = -keep-fires -aggressive-conditions
-bsvdir = ../common:../fft
+# bsvdir = ../common:../fft
+bsvdir = ../common
 build_dir = bscdir
 synth_dir = /tmp/6375-lab1-${USER}
 
