@@ -1,52 +1,46 @@
 import FIFO::*;
 import FixedPoint::*;
-
+import Vector::*;
 
 import AudioProcessorTypes::*;
 import FilterCoefficients::*;
-
+import Multiplier::*;
 
 // The FIR Filter Module Definition
 module mkFIRFilter (AudioProcessor);
     // two fifo for audio data
     FIFO#(Sample) infifo <- mkFIFO();
     FIFO#(Sample) outfifo <- mkFIFO();
-    // 8 Reg for the 8 taps of filter
-    Reg#(Sample) r0 <- mkReg(0);
-    Reg#(Sample) r1 <- mkReg(0);
-    Reg#(Sample) r2 <- mkReg(0);
-    Reg#(Sample) r3 <- mkReg(0);
-    Reg#(Sample) r4 <- mkReg(0);
-    Reg#(Sample) r5 <- mkReg(0);
-    Reg#(Sample) r6 <- mkReg(0);
-    Reg#(Sample) r7 <- mkReg(0);
+    // 8 Reg
+    Vector#(8, Reg#(Sample)) r <- replicateM(mkReg(0));
+    // 9 multiplier
+    Vector#(9, Multiplier) m <- replicateM(mkMultiplier);
 
-    rule process ( True );
+    rule mul (True);
         // keep read in_data
         Sample sample = infifo.first();
         infifo.deq();
         // shift taps
-        r0 <= sample;
-        r1 <= r0;
-        r2 <= r1;
-        r3 <= r2;
-        r4 <= r3;
-        r5 <= r4;
-        r6 <= r5;
-        r7 <= r6;
-        // multiply-accumulate operation
-        FixedPoint#(16,16) accumulate = 
-          c[0] * fromInt(sample)
-        + c[1] * fromInt(r0)
-        + c[2] * fromInt(r1)
-        + c[3] * fromInt(r2)
-        + c[4] * fromInt(r3)
-        + c[5] * fromInt(r4)
-        + c[6] * fromInt(r5)
-        + c[7] * fromInt(r6)
-        + c[8] * fromInt(r7);
+        r[0] <= sample;
+        for(Integer i=0;i<7;i=i+1) begin
+            r[i+1]<=r[i];
+        end
+
+        m[0].putOperands(c[0],sample);
+        for(Integer i=1;i<9;i=i+1) begin
+            m[i].putOperands(c[i],r[i-1]);
+        end
+    endrule
+
+    rule add ( True );
+        Vector#(9,FixedPoint#(16,16)) res;
+        res[0]<-m[0].getResult();
+        for(Integer i=1;i<9;i=i+1) begin
+            let x<-m[i].getResult();
+            res[i]=res[i-1]+x;
+        end
         // out accumulated data
-        outfifo.enq(fxptGetInt(accumulate));
+        outfifo.enq(fxptGetInt(res[8]));
     endrule 
 
     method Action putSampleInput(Sample in);
