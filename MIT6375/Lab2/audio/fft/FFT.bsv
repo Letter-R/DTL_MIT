@@ -130,9 +130,58 @@ module mkCombinationalFFT (FFT);
 
 endmodule
 
+module mkLinearFFT (FFT);
+    // Statically generate the twiddle factors table.
+    TwiddleTable twiddles = genTwiddles();
+
+    // ? wrap for what?
+    // Define the stage_f function which uses the generated twiddles.
+    function Vector#(FFT_POINTS, ComplexSample) stage_f(Bit#(TLog#(FFT_LOG_POINTS)) stage, Vector#(FFT_POINTS, ComplexSample) stage_in);
+        return stage_ft(twiddles, stage, stage_in);
+    endfunction
+
+    // in and out data
+    FIFO#(Vector#(FFT_POINTS, ComplexSample)) inputFIFO  <- mkFIFO(); 
+    FIFO#(Vector#(FFT_POINTS, ComplexSample)) outputFIFO <- mkFIFO(); 
+    // stage_data, use Maybe
+    // one stage data: Maybe#(Vector#(FFT_POINTS, ComplexSample))
+    // FFT_LOG_POINTS stages 
+    Vector#(TAdd#(1, FFT_LOG_POINTS), Reg#(Maybe#(Vector#(FFT_POINTS, ComplexSample)))) stage_data <- replicateM(mkReg(tagged Invalid));
+
+
+    rule linear_fft;
+        stage_data[0] <= tagged Valid inputFIFO.first();
+        inputFIFO.deq();
+
+        for(Integer stage = 0; stage < valueof(FFT_LOG_POINTS); stage=stage+1) begin
+            case (stage_data[stage]) matches
+                // has data, compute, input next stage
+                tagged Valid .data: stage_data[stage+1] <= tagged Valid stage_f(fromInteger(stage), data);
+                // no data, do nothing
+                tagged Invalid:  stage_data[stage+1] <= tagged Invalid;
+            endcase
+        end
+
+        // if finish log stages, enqueue to outputFIFO
+        if (isValid(stage_data[valueof(FFT_LOG_POINTS)]) == True) begin
+            outputFIFO.enq(fromMaybe(?, stage_data[valueof(FFT_LOG_POINTS)]));
+        end
+
+    endrule
+
+    interface Put request;
+        method Action put(Vector#(FFT_POINTS, ComplexSample) x);
+            inputFIFO.enq(bitReverse(x));
+        endmethod
+    endinterface
+
+    interface Get response = toGet(outputFIFO);
+
+endmodule
+
 // Wrapper around The FFT module we actually want to use
 module mkFFT (FFT);
-    FFT fft <- mkCombinationalFFT();
+    FFT fft <- mkLinearFFT();
     
     interface Put request = fft.request;
     interface Get response = fft.response;
