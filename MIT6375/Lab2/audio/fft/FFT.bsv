@@ -130,6 +130,7 @@ module mkCombinationalFFT (FFT);
 
 endmodule
 
+// Problem 2
 module mkLinearFFT (FFT);
     // Statically generate the twiddle factors table.
     TwiddleTable twiddles = genTwiddles();
@@ -179,9 +180,73 @@ module mkLinearFFT (FFT);
 
 endmodule
 
+// Problem 3
+module mkCircularFFT (FFT);
+    // Statically generate the twiddle factors table.
+    TwiddleTable twiddles = genTwiddles();
+
+    // ? wrap for what?
+    // Define the stage_f function which uses the generated twiddles.
+    function Vector#(FFT_POINTS, ComplexSample) stage_f(Bit#(TLog#(FFT_LOG_POINTS)) stage, Vector#(FFT_POINTS, ComplexSample) stage_in);
+        return stage_ft(twiddles, stage, stage_in);
+    endfunction
+
+    // in and out data
+    FIFO#(Vector#(FFT_POINTS, ComplexSample)) inputFIFO  <- mkFIFO(); 
+    FIFO#(Vector#(FFT_POINTS, ComplexSample)) outputFIFO <- mkFIFO(); 
+    // stage_data, update every stage
+    Reg#(Vector#(FFT_POINTS, ComplexSample)) stage_data <- mkRegU();
+    // stage, use Maybe
+    Reg#(Maybe#(Bit#(TLog#(FFT_LOG_POINTS)))) stage <- mkReg(tagged Invalid);
+
+
+    rule circular_fft;
+        // tmp stage data
+        Vector#(FFT_POINTS, ComplexSample) tmp = ?;
+
+        case (stage) matches
+            // not the first stage
+            tagged Valid .current_stage: begin
+                if (current_stage == fromInteger(valueOf(FFT_LOG_POINTS))) begin
+                    // last stage
+                    stage <= tagged Invalid;
+                    outputFIFO.enq(stage_data);
+                end else begin
+                    // not last stage
+                    stage <= tagged Valid (current_stage + 1);
+                    tmp = stage_f(current_stage, stage_data);
+                end
+
+            end
+
+            // the first stage
+            tagged Invalid: begin
+                tmp = stage_f(0, inputFIFO.first);
+                inputFIFO.deq();
+                stage <= tagged Valid 1;
+            end
+
+        endcase
+
+        stage_data <= tmp;
+
+ 
+
+    endrule
+
+    interface Put request;
+        method Action put(Vector#(FFT_POINTS, ComplexSample) x);
+            inputFIFO.enq(bitReverse(x));
+        endmethod
+    endinterface
+
+    interface Get response = toGet(outputFIFO);
+
+endmodule
+
 // Wrapper around The FFT module we actually want to use
 module mkFFT (FFT);
-    FFT fft <- mkLinearFFT();
+    FFT fft <- mkCircularFFT();
     
     interface Put request = fft.request;
     interface Get response = fft.response;
