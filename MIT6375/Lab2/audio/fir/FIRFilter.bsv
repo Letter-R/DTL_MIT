@@ -7,14 +7,14 @@ import AudioProcessorTypes::*;
 import Multiplier::*;
 
 // The FIR Filter Module Definition
-module mkFIRFilter (Vector#(9, FixedPoint#(16, 16)) coeffs, AudioProcessor ifc);
+module mkFIRFilter (Vector#(tnp1, FixedPoint#(16, 16)) coeffs, AudioProcessor ifc);
     // two fifo for audio data
     FIFO#(Sample) infifo <- mkFIFO();
     FIFO#(Sample) outfifo <- mkFIFO();
     // 8 Reg
-    Vector#(8, Reg#(Sample)) r <- replicateM(mkReg(0));
+    Vector#(TSub#(tnp1, 1), Reg#(Sample)) r <- replicateM(mkReg(0));
     // 9 multiplier
-    Vector#(9, Multiplier) m <- replicateM(mkMultiplier);
+    Vector#(tnp1, Multiplier) m <- replicateM(mkMultiplier);
 
     rule mul (True);
         // keep read in_data
@@ -22,25 +22,25 @@ module mkFIRFilter (Vector#(9, FixedPoint#(16, 16)) coeffs, AudioProcessor ifc);
         infifo.deq();
         // shift taps
         r[0] <= sample;
-        for(Integer i=0;i<7;i=i+1) begin
+        for(Integer i=0;i<(valueOf(tnp1)-2);i=i+1) begin
             r[i+1]<=r[i];
         end
 
         m[0].putOperands(coeffs[0],sample);
-        for(Integer i=1;i<9;i=i+1) begin
+        for(Integer i=1;i<valueOf(tnp1);i=i+1) begin
             m[i].putOperands(coeffs[i],r[i-1]);
         end
     endrule
 
     rule add ( True );
-        Vector#(9,FixedPoint#(16,16)) res;
+        Vector#(tnp1,FixedPoint#(16,16)) res;
         res[0]<-m[0].getResult();
-        for(Integer i=1;i<9;i=i+1) begin
+        for(Integer i=1;i<valueOf(tnp1);i=i+1) begin
             let x<-m[i].getResult();
             res[i]=res[i-1]+x;
         end
         // out accumulated data
-        outfifo.enq(fxptGetInt(res[8]));
+        outfifo.enq(fxptGetInt(res[valueOf(TSub#(tnp1, 1))]));
     endrule 
 
     method Action putSampleInput(Sample in);
