@@ -3,11 +3,11 @@ import FixedPoint::*;
 import Vector::*;
 
 import AudioProcessorTypes::*;
-import FilterCoefficients::*;
+
 import Multiplier::*;
 
 // The FIR Filter Module Definition
-module mkFIRFilter (AudioProcessor);
+module mkFIRFilter (Vector#(9, FixedPoint#(16, 16)) coeffs, AudioProcessor ifc);
     // two fifo for audio data
     FIFO#(Sample) infifo <- mkFIFO();
     FIFO#(Sample) outfifo <- mkFIFO();
@@ -26,9 +26,9 @@ module mkFIRFilter (AudioProcessor);
             r[i+1]<=r[i];
         end
 
-        m[0].putOperands(c[0],sample);
+        m[0].putOperands(coeffs[0],sample);
         for(Integer i=1;i<9;i=i+1) begin
-            m[i].putOperands(c[i],r[i-1]);
+            m[i].putOperands(coeffs[i],r[i-1]);
         end
     endrule
 

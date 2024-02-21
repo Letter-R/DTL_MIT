@@ -3,6 +3,7 @@ import ClientServer::*;
 import GetPut::*;
 
 import AudioProcessorTypes::*;
+import FilterCoefficients::*;
 import Chunker::*;
 import FFT::*;
 import FIRFilter::*;
@@ -10,7 +11,7 @@ import Splitter::*;
 
 module mkAudioPipeline(AudioProcessor);
 
-    AudioProcessor fir <- mkFIRFilter();
+    AudioProcessor fir <- mkFIRFilter(c);
     Chunker#(FFT_POINTS, ComplexSample) chunker <- mkChunker();
     FFT fft <- mkFFT();
     FFT ifft <- mkIFFT();
