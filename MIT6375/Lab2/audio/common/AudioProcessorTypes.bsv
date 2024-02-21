@@ -27,6 +27,6 @@ function Sample frcmplx(ComplexSample x);
 endfunction
 
 
-typedef 8 FFT_POINTS;
-typedef TLog#(FFT_POINTS) FFT_LOG_POINTS;
+typedef 4 FFT_POINTS;
+// typedef TLog#(FFT_POINTS) FFT_LOG_POINTS;
 
