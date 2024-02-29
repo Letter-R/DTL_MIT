@@ -27,6 +27,14 @@ function Sample frcmplx(ComplexSample x);
 endfunction
 
 
-typedef 4 FFT_POINTS;
+typedef 8 N_VALUE;
+typedef 2 S_VALUE;
+typedef 2 FACTOR_VALUE;
+typedef 16 PSIZE_VALUE;
+
+// typedef 8 FFT_POINTS;
 // typedef TLog#(FFT_POINTS) FFT_LOG_POINTS;
 
+// Use N = 8, S = 2,
+// pitch shifting factor= 2, 
+// psize = 16 bits for the phase values.

@@ -12,6 +12,7 @@ import FShow::*;
 import StmtFSM::*;
 
 import ComplexMP::*;
+import AudioProcessorTypes::*;
 
 // CORDIC.
 //  Conversion of complex numbers in REAL/IMAGINARY format to and from
@@ -55,7 +56,11 @@ function Real gain(Integer iters);
 endfunction
 
 // Convert complex numbers in REAL/IMAGINARY format to MAGNITUDE/PHASE.
-module mkCordicToMagnitudePhase (ToMagnitudePhase#(isize, fsize, psize));
+module mkCordicToMagnitudePhase (ToMagnitudePhase#(isize, fsize, psize)) 
+    provisos(
+        Arith#(FixedPoint::FixedPoint#(isize, fsize)),
+        RealLiteral#(FixedPoint::FixedPoint#(isize, fsize))
+    );
     Reg#(Bool) idle <- mkReg(True);
     Reg#(FixedPoint#(isize, fsize)) rel <- mkRegU();
     Reg#(FixedPoint#(isize, fsize)) img <- mkRegU();
@@ -127,7 +132,11 @@ module mkCordicToMagnitudePhase (ToMagnitudePhase#(isize, fsize, psize));
 
 endmodule
 
-module mkCordicFromMagnitudePhase (FromMagnitudePhase#(isize, fsize, psize));
+module mkCordicFromMagnitudePhase (FromMagnitudePhase#(isize, fsize, psize)) 
+    provisos(
+        Arith#(FixedPoint::FixedPoint#(isize, fsize)),
+        RealLiteral#(FixedPoint::FixedPoint#(isize, fsize))
+    );
     Reg#(Bool) idle <- mkReg(True);
     Reg#(FixedPoint#(isize, fsize)) rel <- mkRegU();
     Reg#(FixedPoint#(isize, fsize)) img <- mkRegU();
@@ -203,7 +212,7 @@ module mkCordicTest (Empty);
     ToMagnitudePhase#(16, 16, 10) tomp <- mkCordicToMagnitudePhase();
     FromMagnitudePhase#(16, 16, 20) frmp <- mkCordicFromMagnitudePhase();
     
-    function Stmt testtomp(Complex#(FixedPoint#(16, 16)) x, ComplexMP#(16, 16, 10) exp);
+    function Stmt testtomp(ComplexSample x, ComplexMP#(16, 16, 10) exp);
         return (seq
             $display("-- tomp: ", fshow(x), "---------");
             tomp.request.put(x);
@@ -222,7 +231,7 @@ module mkCordicTest (Empty);
         endseq);
     endfunction
 
-    function Stmt testfrmp(ComplexMP#(16, 16, 20) x, Complex#(FixedPoint#(16, 16)) exp);
+    function Stmt testfrmp(ComplexMP#(16, 16, 20) x, ComplexSample exp);
         return (seq
             $display("-- frmp: ", fshow(x), "---------");
             frmp.request.put(x);
