@@ -1,6 +1,8 @@
 
 import ClientServer::*;
 import GetPut::*;
+import Vector::*;
+import FixedPoint :: *;
 
 import AudioProcessorTypes::*;
 import FilterCoefficients::*;
@@ -9,6 +11,11 @@ import FFT::*;
 import FIRFilter::*;
 import Splitter::*;
 import MP_Complex::*;
+import OverSampler:: *;
+import Overlayer::*;
+import Cordic:: *;
+import Complex::*;
+import PitchAdjust::*;
 
 module mkAudioPipeline(AudioProcessor);
     // interface AudioProcessor;
@@ -17,7 +24,7 @@ module mkAudioPipeline(AudioProcessor);
     // endinterface    
     AudioProcessor fir <- mkFIRFilter(c);
     // typedef Server#(t, Vector#(n, t)) Chunker#(numeric type n, type t);
-    Chunker#(N_VALUE, Sample) chunker <- mkChunker();
+    Chunker#(S_VALUE, Sample) chunker <- mkChunker();
 
     // typedef Server#(
     //     Vector#(s, t),
@@ -41,7 +48,7 @@ module mkAudioPipeline(AudioProcessor);
     //     Vector#(nbins, ComplexMP#(isize, fsize, psize)),
     //     Vector#(nbins, ComplexMP#(isize, fsize, psize))
     // ) PitchAdjust#(numeric type nbins, numeric type isize, numeric type fsize, numeric type psize);
-    PitchAdjust#(N_VALUE, 16, 16, PSIZE_VALUE) pitchadjust <- mkPitchAdjust(S_VALUE, FACTOR_VALUE);
+    PitchAdjust#(N_VALUE, 16, 16, PSIZE_VALUE) pitchadjust <- mkPitchAdjust(valueOf(S_VALUE), 2);
     
     // typedef Server#(
     //     Vector#(nvalue, ComplexMP#(isize, fsize, psize)),
@@ -59,10 +66,10 @@ module mkAudioPipeline(AudioProcessor);
     //     Vector#(n, t),
     //     Vector#(s, t)
     // ) Overlayer#(numeric type n, numeric type s, type t);
-    Overlayer#(FFT_POINTS,STRIDE,Sample) overlayer <- mkOverlayer(replicate(0));
+    Overlayer#(N_VALUE,S_VALUE,Sample) overlayer <- mkOverlayer(replicate(0));
 
     // typedef Server#(Vector#(n, t), t) Splitter#(numeric type n, type t);
-    Splitter#(N_VALUE, ComplexSample) splitter <- mkSplitter();
+    Splitter#(S_VALUE, Sample) splitter <- mkSplitter();
 
 
 
@@ -78,8 +85,12 @@ module mkAudioPipeline(AudioProcessor);
     endrule
 
     rule oversampler_to_fft (True);
-        let x <- oversampler.response.get();
-        fft.request.put(tocmplx(x));
+        Vector#(N_VALUE, Sample) x <- oversampler.response.get();
+        Vector#(N_VALUE, Complex#(FixedPoint#(16, 16))) y;
+        for (Integer i=0; i<valueOf(N_VALUE); i=i+1) begin
+            y[i] = tocmplx(x[i]);
+        end
+        fft.request.put(y);
     endrule
 
     rule fft_to_tomp (True);
@@ -87,13 +98,13 @@ module mkAudioPipeline(AudioProcessor);
         tomp.request.put(x);
     endrule
 
-    rule tomp_to_patchadjust (True);
+    rule tomp_to_pitchadjust (True);
         let x <- tomp.response.get();
-        patchadjust.request.put(x);
+        pitchadjust.request.put(x);
     endrule
 
-    rule patchadjust_to_frommp (True);
-        let x <- patchadjust.response.get();
+    rule pitchadjust_to_frommp (True);
+        let x <- pitchadjust.response.get();
         frommp.request.put(x);
     endrule
 
@@ -103,12 +114,12 @@ module mkAudioPipeline(AudioProcessor);
     endrule
 
     rule ifft_to_overlayer (True);
-        Vector#(FFT_POINTS, ComplexSample) x <- ifft.response.get();
-        Vector#(FFT_POINTS, Sample) y;
-        for (Integer i=0; i<valueOf(FFT_POINTS); i=i+1) begin
+        Vector#(N_VALUE, ComplexSample) x <- ifft.response.get();
+        Vector#(N_VALUE, Sample) y;
+        for (Integer i=0; i<valueOf(N_VALUE); i=i+1) begin
             y[i] = frcmplx(x[i]);
         end
-        over_layer.request.put(y);
+        overlayer.request.put(y);
     endrule
 
     rule overlayer_to_splitter (True);
