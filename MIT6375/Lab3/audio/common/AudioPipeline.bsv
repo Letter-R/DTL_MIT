@@ -83,7 +83,7 @@ module mkAudioPipeline(AudioProcessor);
         let x<- chunker.response.get();
         oversampler.request.put(x);
     endrule
-
+    
     rule oversampler_to_fft (True);
         Vector#(N_VALUE, Sample) x <- oversampler.response.get();
         Vector#(N_VALUE, Complex#(FixedPoint#(16, 16))) y;

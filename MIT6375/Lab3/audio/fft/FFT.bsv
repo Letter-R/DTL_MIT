@@ -118,7 +118,7 @@ module mkCircularFFT (FFT#(fft_points, cmplxd)) provisos(Add#(2, a__, fft_points
     Reg#(Vector#(fft_points, Complex#(cmplxd))) stage_data <- mkRegU();
     // stage, use Maybe
     Reg#(Maybe#(Bit#(TLog#(TLog#(fft_points))))) stage <- mkReg(tagged Invalid);
-
+    Reg#(Bool) first_round <- mkReg(True);  
 
     rule circular_fft;
         // tmp stage data
@@ -127,14 +127,14 @@ module mkCircularFFT (FFT#(fft_points, cmplxd)) provisos(Add#(2, a__, fft_points
         case (stage) matches
             // not the first stage
             tagged Valid .current_stage: begin
+                tmp = stage_f(current_stage, stage_data);
                 if (current_stage == fromInteger(valueOf(TLog#(fft_points))-1)) begin
                     // last stage
                     stage <= tagged Invalid;
-                    outputFIFO.enq(stage_data);
                 end else begin
                     // not last stage
                     stage <= tagged Valid (current_stage + 1);
-                    tmp = stage_f(current_stage, stage_data);
+                    
                 end
             end
             // the first stage
@@ -142,6 +142,10 @@ module mkCircularFFT (FFT#(fft_points, cmplxd)) provisos(Add#(2, a__, fft_points
                 tmp = stage_f(0, inputFIFO.first);
                 inputFIFO.deq();
                 stage <= tagged Valid 1;
+                if (first_round == False) begin
+                    outputFIFO.enq(stage_data);
+                end
+                first_round <= False;
             end
         endcase
         stage_data <= tmp;
