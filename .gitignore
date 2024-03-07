@@ -16,3 +16,4 @@ out**
 bscdir
 oss-cad-suite/
 *.pcm
+tmp/
