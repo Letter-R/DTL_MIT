@@ -1,4 +1,4 @@
-CONNECTALDIR ?= /home/adam/connectal
+CONNECTALDIR ?= /opt/connectal
 BSVBASEDIR = $(abspath ..)/src
 BASEDIR = $(abspath .)
 

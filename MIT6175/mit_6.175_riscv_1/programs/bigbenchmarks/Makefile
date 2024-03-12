@@ -35,7 +35,7 @@ HOST_OPTS := -std=gnu99 -DPREALLOCATE=0 -DHOST_DEBUG=1 -I$(commondir)
 HOST_COMP := gcc $(HOST_OPTS)
 
 #RISCV_TOOL_DIR := /mit/6.375/rv32-gcc/bin
-RISCV_TOOL_DIR := /home/adam/riscv32-special/bin
+RISCV_TOOL_DIR := /opt/riscv/bin/
 RISCV_PREFIX := $(RISCV_TOOL_DIR)/riscv32-unknown-elf
 # gcc
 RISCV_GCC := $(RISCV_PREFIX)-gcc

@@ -39,14 +39,14 @@ rv32ui_tests = \
 #--------------------------------------------------------------------
 
 #RISCV_TOOL_DIR := /mit/6.375/rv32-gcc/bin
-RISCV_TOOL_DIR := /home/adam/riscv32-special/bin
+RISCV_TOOL_DIR := /opt/riscv/bin/
 RISCV_PREFIX := $(RISCV_TOOL_DIR)/riscv32-unknown-elf
 # gcc
 RISCV_GCC := $(RISCV_PREFIX)-gcc
 
 
 #RISCV_GCC_OPTS := -m32 -static -fvisibility=hidden -nostdlib -nostartfiles -Wa,-march=RVI
-RISCV_GCC_OPTS := -static -fvisibility=hidden -nostdlib -nostartfiles -Wa,-march=rv32i
+RISCV_GCC_OPTS := -static -fvisibility=hidden -nostdlib -nostartfiles -Wa,-march=rv32id_zicsr
 
 
 incs := -I$(asmdir)/../env -I$(asmdir)/macros
