@@ -3,37 +3,37 @@
 #ifndef RISCV_CSR_ENCODING_H
 #define RISCV_CSR_ENCODING_H
 
-#define MSTATUS_IE          0x00000001
-#define MSTATUS_PRV         0x00000006
-#define MSTATUS_IE1         0x00000008
-#define MSTATUS_PRV1        0x00000030
-#define MSTATUS_IE2         0x00000040
-#define MSTATUS_PRV2        0x00000180
-#define MSTATUS_IE3         0x00000200
-#define MSTATUS_PRV3        0x00000C00
-#define MSTATUS_FS          0x00003000
-#define MSTATUS_XS          0x0000C000
-#define MSTATUS_MPRV        0x00010000
-#define MSTATUS_VM          0x003E0000
-#define MSTATUS32_SD        0x80000000
-#define MSTATUS64_SD        0x8000000000000000
+#define MSTATUS_IE 0x00000001
+#define MSTATUS_PRV 0x00000006
+#define MSTATUS_IE1 0x00000008
+#define MSTATUS_PRV1 0x00000030
+#define MSTATUS_IE2 0x00000040
+#define MSTATUS_PRV2 0x00000180
+#define MSTATUS_IE3 0x00000200
+#define MSTATUS_PRV3 0x00000C00
+#define MSTATUS_FS 0x00003000
+#define MSTATUS_XS 0x0000C000
+#define MSTATUS_MPRV 0x00010000
+#define MSTATUS_VM 0x003E0000
+#define MSTATUS32_SD 0x80000000
+#define MSTATUS64_SD 0x8000000000000000
 
-#define SSTATUS_IE          0x00000001
-#define SSTATUS_PIE         0x00000008
-#define SSTATUS_PS          0x00000010
-#define SSTATUS_FS          0x00003000
-#define SSTATUS_XS          0x0000C000
-#define SSTATUS_MPRV        0x00010000
-#define SSTATUS_TIE         0x01000000
-#define SSTATUS32_SD        0x80000000
-#define SSTATUS64_SD        0x8000000000000000
+#define SSTATUS_IE 0x00000001
+#define SSTATUS_PIE 0x00000008
+#define SSTATUS_PS 0x00000010
+#define SSTATUS_FS 0x00003000
+#define SSTATUS_XS 0x0000C000
+#define SSTATUS_MPRV 0x00010000
+#define SSTATUS_TIE 0x01000000
+#define SSTATUS32_SD 0x80000000
+#define SSTATUS64_SD 0x8000000000000000
 
-#define MIP_SSIP            0x00000002
-#define MIP_HSIP            0x00000004
-#define MIP_MSIP            0x00000008
-#define MIP_STIP            0x00000020
-#define MIP_HTIP            0x00000040
-#define MIP_MTIP            0x00000080
+#define MIP_SSIP 0x00000002
+#define MIP_HSIP 0x00000004
+#define MIP_MSIP 0x00000008
+#define MIP_STIP 0x00000020
+#define MIP_HTIP 0x00000040
+#define MIP_MTIP 0x00000080
 
 #define SIP_SSIP MIP_SSIP
 #define SIP_STIP MIP_STIP
@@ -44,74 +44,73 @@
 #define PRV_M 3
 
 #define VM_MBARE 0
-#define VM_MBB   1
+#define VM_MBB 1
 #define VM_MBBID 2
-#define VM_SV32  8
-#define VM_SV39  9
-#define VM_SV48  10
+#define VM_SV32 8
+#define VM_SV39 9
+#define VM_SV48 10
 
-#define UA_RV32  0
-#define UA_RV64  4
+#define UA_RV32 0
+#define UA_RV64 4
 #define UA_RV128 8
 
-#define IRQ_SOFT   0
-#define IRQ_TIMER  1
-#define IRQ_HOST   2
-#define IRQ_COP    3
+#define IRQ_SOFT 0
+#define IRQ_TIMER 1
+#define IRQ_HOST 2
+#define IRQ_COP 3
 
 #define IMPL_ROCKET 1
 
 #define DEFAULT_MTVEC 0x100
 
 // page table entry (PTE) fields
-#define PTE_V     0x001 // Valid
-#define PTE_TYPE  0x01E // Type
-#define PTE_R     0x020 // Referenced
-#define PTE_D     0x040 // Dirty
-#define PTE_SOFT  0x380 // Reserved for Software
+#define PTE_V 0x001    // Valid
+#define PTE_TYPE 0x01E // Type
+#define PTE_R 0x020    // Referenced
+#define PTE_D 0x040    // Dirty
+#define PTE_SOFT 0x380 // Reserved for Software
 
-#define PTE_TYPE_TABLE        0x00
+#define PTE_TYPE_TABLE 0x00
 #define PTE_TYPE_TABLE_GLOBAL 0x02
-#define PTE_TYPE_URX_SR       0x04
-#define PTE_TYPE_URWX_SRW     0x06
-#define PTE_TYPE_UR_SR        0x08
-#define PTE_TYPE_URW_SRW      0x0A
-#define PTE_TYPE_URX_SRX      0x0C
-#define PTE_TYPE_URWX_SRWX    0x0E
-#define PTE_TYPE_SR           0x10
-#define PTE_TYPE_SRW          0x12
-#define PTE_TYPE_SRX          0x14
-#define PTE_TYPE_SRWX         0x16
-#define PTE_TYPE_SR_GLOBAL    0x18
-#define PTE_TYPE_SRW_GLOBAL   0x1A
-#define PTE_TYPE_SRX_GLOBAL   0x1C
-#define PTE_TYPE_SRWX_GLOBAL  0x1E
+#define PTE_TYPE_URX_SR 0x04
+#define PTE_TYPE_URWX_SRW 0x06
+#define PTE_TYPE_UR_SR 0x08
+#define PTE_TYPE_URW_SRW 0x0A
+#define PTE_TYPE_URX_SRX 0x0C
+#define PTE_TYPE_URWX_SRWX 0x0E
+#define PTE_TYPE_SR 0x10
+#define PTE_TYPE_SRW 0x12
+#define PTE_TYPE_SRX 0x14
+#define PTE_TYPE_SRWX 0x16
+#define PTE_TYPE_SR_GLOBAL 0x18
+#define PTE_TYPE_SRW_GLOBAL 0x1A
+#define PTE_TYPE_SRX_GLOBAL 0x1C
+#define PTE_TYPE_SRWX_GLOBAL 0x1E
 
 #define PTE_PPN_SHIFT 10
 
 #define PTE_TABLE(PTE) ((0x0000000AU >> ((PTE) & 0x1F)) & 1)
-#define PTE_UR(PTE)    ((0x0000AAA0U >> ((PTE) & 0x1F)) & 1)
-#define PTE_UW(PTE)    ((0x00008880U >> ((PTE) & 0x1F)) & 1)
-#define PTE_UX(PTE)    ((0x0000A0A0U >> ((PTE) & 0x1F)) & 1)
-#define PTE_SR(PTE)    ((0xAAAAAAA0U >> ((PTE) & 0x1F)) & 1)
-#define PTE_SW(PTE)    ((0x88888880U >> ((PTE) & 0x1F)) & 1)
-#define PTE_SX(PTE)    ((0xA0A0A000U >> ((PTE) & 0x1F)) & 1)
+#define PTE_UR(PTE) ((0x0000AAA0U >> ((PTE) & 0x1F)) & 1)
+#define PTE_UW(PTE) ((0x00008880U >> ((PTE) & 0x1F)) & 1)
+#define PTE_UX(PTE) ((0x0000A0A0U >> ((PTE) & 0x1F)) & 1)
+#define PTE_SR(PTE) ((0xAAAAAAA0U >> ((PTE) & 0x1F)) & 1)
+#define PTE_SW(PTE) ((0x88888880U >> ((PTE) & 0x1F)) & 1)
+#define PTE_SX(PTE) ((0xA0A0A000U >> ((PTE) & 0x1F)) & 1)
 
-#define PTE_CHECK_PERM(PTE, SUPERVISOR, STORE, FETCH) \
-  ((STORE) ? ((SUPERVISOR) ? PTE_SW(PTE) : PTE_UW(PTE)) : \
-   (FETCH) ? ((SUPERVISOR) ? PTE_SX(PTE) : PTE_UX(PTE)) : \
-             ((SUPERVISOR) ? PTE_SR(PTE) : PTE_UR(PTE)))
+#define PTE_CHECK_PERM(PTE, SUPERVISOR, STORE, FETCH)                                                          \
+  ((STORE) ? ((SUPERVISOR) ? PTE_SW(PTE) : PTE_UW(PTE)) : (FETCH) ? ((SUPERVISOR) ? PTE_SX(PTE) : PTE_UX(PTE)) \
+                                                                  : ((SUPERVISOR) ? PTE_SR(PTE) : PTE_UR(PTE)))
 
 #ifdef __riscv
 
 #ifdef __riscv64
-# define MSTATUS_SD MSTATUS64_SD
-# define SSTATUS_SD SSTATUS64_SD
-# define RISCV_PGLEVEL_BITS 9
+#define MSTATUS_SD MSTATUS64_SD
+#define SSTATUS_SD SSTATUS64_SD
+#define RISCV_PGLEVEL_BITS 9
 #else
-# define MSTATUS_SD MSTATUS32_SD
-# define SSTATUS_SD SSTATUS32_SD
-# define RISCV_PGLEVEL_BITS 10
+#define MSTATUS_SD MSTATUS32_SD
+#define SSTATUS_SD SSTATUS32_SD
+#define RISCV_PGLEVEL_BITS 10
 #endif
 #define RISCV_PGSHIFT 12
 #define RISCV_PGSIZE (1 << RISCV_PGSHIFT)
@@ -125,7 +124,7 @@
   __tmp; })
 
 #define write_csr(reg, val) \
-  asm volatile ("csrw " #reg ", %0" :: "r"(val))
+  asm volatile("csrw " #reg ", %0" ::"r"(val))
 
 #define swap_csr(reg, val) ({ long __tmp; \
   asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "r"(val)); \
@@ -160,371 +159,371 @@
 #ifndef RISCV_ENCODING_H
 #define RISCV_ENCODING_H
 #define MATCH_ADD 0x33
-#define MASK_ADD  0xfe00707f
+#define MASK_ADD 0xfe00707f
 #define MATCH_ADDI 0x13
-#define MASK_ADDI  0x707f
+#define MASK_ADDI 0x707f
 #define MATCH_ADDIW 0x1b
-#define MASK_ADDIW  0x707f
+#define MASK_ADDIW 0x707f
 #define MATCH_ADDW 0x3b
-#define MASK_ADDW  0xfe00707f
+#define MASK_ADDW 0xfe00707f
 #define MATCH_AMOADD_D 0x302f
-#define MASK_AMOADD_D  0xf800707f
+#define MASK_AMOADD_D 0xf800707f
 #define MATCH_AMOADD_W 0x202f
-#define MASK_AMOADD_W  0xf800707f
+#define MASK_AMOADD_W 0xf800707f
 #define MATCH_AMOAND_D 0x6000302f
-#define MASK_AMOAND_D  0xf800707f
+#define MASK_AMOAND_D 0xf800707f
 #define MATCH_AMOAND_W 0x6000202f
-#define MASK_AMOAND_W  0xf800707f
+#define MASK_AMOAND_W 0xf800707f
 #define MATCH_AMOMAX_D 0xa000302f
-#define MASK_AMOMAX_D  0xf800707f
+#define MASK_AMOMAX_D 0xf800707f
 #define MATCH_AMOMAX_W 0xa000202f
-#define MASK_AMOMAX_W  0xf800707f
+#define MASK_AMOMAX_W 0xf800707f
 #define MATCH_AMOMAXU_D 0xe000302f
-#define MASK_AMOMAXU_D  0xf800707f
+#define MASK_AMOMAXU_D 0xf800707f
 #define MATCH_AMOMAXU_W 0xe000202f
-#define MASK_AMOMAXU_W  0xf800707f
+#define MASK_AMOMAXU_W 0xf800707f
 #define MATCH_AMOMIN_D 0x8000302f
-#define MASK_AMOMIN_D  0xf800707f
+#define MASK_AMOMIN_D 0xf800707f
 #define MATCH_AMOMIN_W 0x8000202f
-#define MASK_AMOMIN_W  0xf800707f
+#define MASK_AMOMIN_W 0xf800707f
 #define MATCH_AMOMINU_D 0xc000302f
-#define MASK_AMOMINU_D  0xf800707f
+#define MASK_AMOMINU_D 0xf800707f
 #define MATCH_AMOMINU_W 0xc000202f
-#define MASK_AMOMINU_W  0xf800707f
+#define MASK_AMOMINU_W 0xf800707f
 #define MATCH_AMOOR_D 0x4000302f
-#define MASK_AMOOR_D  0xf800707f
+#define MASK_AMOOR_D 0xf800707f
 #define MATCH_AMOOR_W 0x4000202f
-#define MASK_AMOOR_W  0xf800707f
+#define MASK_AMOOR_W 0xf800707f
 #define MATCH_AMOSWAP_D 0x800302f
-#define MASK_AMOSWAP_D  0xf800707f
+#define MASK_AMOSWAP_D 0xf800707f
 #define MATCH_AMOSWAP_W 0x800202f
-#define MASK_AMOSWAP_W  0xf800707f
+#define MASK_AMOSWAP_W 0xf800707f
 #define MATCH_AMOXOR_D 0x2000302f
-#define MASK_AMOXOR_D  0xf800707f
+#define MASK_AMOXOR_D 0xf800707f
 #define MATCH_AMOXOR_W 0x2000202f
-#define MASK_AMOXOR_W  0xf800707f
+#define MASK_AMOXOR_W 0xf800707f
 #define MATCH_AND 0x7033
-#define MASK_AND  0xfe00707f
+#define MASK_AND 0xfe00707f
 #define MATCH_ANDI 0x7013
-#define MASK_ANDI  0x707f
+#define MASK_ANDI 0x707f
 #define MATCH_AUIPC 0x17
-#define MASK_AUIPC  0x7f
+#define MASK_AUIPC 0x7f
 #define MATCH_BEQ 0x63
-#define MASK_BEQ  0x707f
+#define MASK_BEQ 0x707f
 #define MATCH_BGE 0x5063
-#define MASK_BGE  0x707f
+#define MASK_BGE 0x707f
 #define MATCH_BGEU 0x7063
-#define MASK_BGEU  0x707f
+#define MASK_BGEU 0x707f
 #define MATCH_BLT 0x4063
-#define MASK_BLT  0x707f
+#define MASK_BLT 0x707f
 #define MATCH_BLTU 0x6063
-#define MASK_BLTU  0x707f
+#define MASK_BLTU 0x707f
 #define MATCH_BNE 0x1063
-#define MASK_BNE  0x707f
+#define MASK_BNE 0x707f
 #define MATCH_C_ADD 0x6000
-#define MASK_C_ADD  0xf003
+#define MASK_C_ADD 0xf003
 #define MATCH_C_ADDI 0x8000
-#define MASK_C_ADDI  0xe003
+#define MASK_C_ADDI 0xe003
 #define MATCH_C_ADDI4 0xa000
-#define MASK_C_ADDI4  0xe003
+#define MASK_C_ADDI4 0xe003
 #define MATCH_C_ADDIW 0xe000
-#define MASK_C_ADDIW  0xe003
+#define MASK_C_ADDIW 0xe003
 #define MATCH_C_ADDW 0x7000
-#define MASK_C_ADDW  0xf003
+#define MASK_C_ADDW 0xf003
 #define MATCH_C_BEQZ 0x2002
-#define MASK_C_BEQZ  0xe003
+#define MASK_C_BEQZ 0xe003
 #define MATCH_C_BNEZ 0x6002
-#define MASK_C_BNEZ  0xe003
+#define MASK_C_BNEZ 0xe003
 #define MATCH_C_J 0xa002
-#define MASK_C_J  0xe003
+#define MASK_C_J 0xe003
 #define MATCH_C_JALR 0x5000
-#define MASK_C_JALR  0xf003
+#define MASK_C_JALR 0xf003
 #define MATCH_C_LD 0x2001
-#define MASK_C_LD  0xe003
+#define MASK_C_LD 0xe003
 #define MATCH_C_LDSP 0xc001
-#define MASK_C_LDSP  0xe003
+#define MASK_C_LDSP 0xe003
 #define MATCH_C_LI 0x0
-#define MASK_C_LI  0xe003
+#define MASK_C_LI 0xe003
 #define MATCH_C_LUI 0x2000
-#define MASK_C_LUI  0xe003
+#define MASK_C_LUI 0xe003
 #define MATCH_C_LW 0x1
-#define MASK_C_LW  0xe003
+#define MASK_C_LW 0xe003
 #define MATCH_C_LWSP 0x8001
-#define MASK_C_LWSP  0xe003
+#define MASK_C_LWSP 0xe003
 #define MATCH_C_MV 0x4000
-#define MASK_C_MV  0xf003
+#define MASK_C_MV 0xf003
 #define MATCH_C_SD 0x6001
-#define MASK_C_SD  0xe003
+#define MASK_C_SD 0xe003
 #define MATCH_C_SDSP 0xe001
-#define MASK_C_SDSP  0xe003
+#define MASK_C_SDSP 0xe003
 #define MATCH_C_SLLI 0xc000
-#define MASK_C_SLLI  0xe003
+#define MASK_C_SLLI 0xe003
 #define MATCH_C_SW 0x4001
-#define MASK_C_SW  0xe003
+#define MASK_C_SW 0xe003
 #define MATCH_C_SWSP 0xa001
-#define MASK_C_SWSP  0xe003
+#define MASK_C_SWSP 0xe003
 #define MATCH_CSRRC 0x3073
-#define MASK_CSRRC  0x707f
+#define MASK_CSRRC 0x707f
 #define MATCH_CSRRCI 0x7073
-#define MASK_CSRRCI  0x707f
+#define MASK_CSRRCI 0x707f
 #define MATCH_CSRRS 0x2073
-#define MASK_CSRRS  0x707f
+#define MASK_CSRRS 0x707f
 #define MATCH_CSRRSI 0x6073
-#define MASK_CSRRSI  0x707f
+#define MASK_CSRRSI 0x707f
 #define MATCH_CSRRW 0x1073
-#define MASK_CSRRW  0x707f
+#define MASK_CSRRW 0x707f
 #define MATCH_CSRRWI 0x5073
-#define MASK_CSRRWI  0x707f
+#define MASK_CSRRWI 0x707f
 #define MATCH_DIV 0x2004033
-#define MASK_DIV  0xfe00707f
+#define MASK_DIV 0xfe00707f
 #define MATCH_DIVU 0x2005033
-#define MASK_DIVU  0xfe00707f
+#define MASK_DIVU 0xfe00707f
 #define MATCH_DIVUW 0x200503b
-#define MASK_DIVUW  0xfe00707f
+#define MASK_DIVUW 0xfe00707f
 #define MATCH_DIVW 0x200403b
-#define MASK_DIVW  0xfe00707f
+#define MASK_DIVW 0xfe00707f
 #define MATCH_FADD_D 0x2000053
-#define MASK_FADD_D  0xfe00007f
+#define MASK_FADD_D 0xfe00007f
 #define MATCH_FADD_S 0x53
-#define MASK_FADD_S  0xfe00007f
+#define MASK_FADD_S 0xfe00007f
 #define MATCH_FCLASS_D 0xe2001053
-#define MASK_FCLASS_D  0xfff0707f
+#define MASK_FCLASS_D 0xfff0707f
 #define MATCH_FCLASS_S 0xe0001053
-#define MASK_FCLASS_S  0xfff0707f
+#define MASK_FCLASS_S 0xfff0707f
 #define MATCH_FCVT_D_L 0xd2200053
-#define MASK_FCVT_D_L  0xfff0007f
+#define MASK_FCVT_D_L 0xfff0007f
 #define MATCH_FCVT_D_LU 0xd2300053
-#define MASK_FCVT_D_LU  0xfff0007f
+#define MASK_FCVT_D_LU 0xfff0007f
 #define MATCH_FCVT_D_S 0x42000053
-#define MASK_FCVT_D_S  0xfff0007f
+#define MASK_FCVT_D_S 0xfff0007f
 #define MATCH_FCVT_D_W 0xd2000053
-#define MASK_FCVT_D_W  0xfff0007f
+#define MASK_FCVT_D_W 0xfff0007f
 #define MATCH_FCVT_D_WU 0xd2100053
-#define MASK_FCVT_D_WU  0xfff0007f
+#define MASK_FCVT_D_WU 0xfff0007f
 #define MATCH_FCVT_L_D 0xc2200053
-#define MASK_FCVT_L_D  0xfff0007f
+#define MASK_FCVT_L_D 0xfff0007f
 #define MATCH_FCVT_L_S 0xc0200053
-#define MASK_FCVT_L_S  0xfff0007f
+#define MASK_FCVT_L_S 0xfff0007f
 #define MATCH_FCVT_LU_D 0xc2300053
-#define MASK_FCVT_LU_D  0xfff0007f
+#define MASK_FCVT_LU_D 0xfff0007f
 #define MATCH_FCVT_LU_S 0xc0300053
-#define MASK_FCVT_LU_S  0xfff0007f
+#define MASK_FCVT_LU_S 0xfff0007f
 #define MATCH_FCVT_S_D 0x40100053
-#define MASK_FCVT_S_D  0xfff0007f
+#define MASK_FCVT_S_D 0xfff0007f
 #define MATCH_FCVT_S_L 0xd0200053
-#define MASK_FCVT_S_L  0xfff0007f
+#define MASK_FCVT_S_L 0xfff0007f
 #define MATCH_FCVT_S_LU 0xd0300053
-#define MASK_FCVT_S_LU  0xfff0007f
+#define MASK_FCVT_S_LU 0xfff0007f
 #define MATCH_FCVT_S_W 0xd0000053
-#define MASK_FCVT_S_W  0xfff0007f
+#define MASK_FCVT_S_W 0xfff0007f
 #define MATCH_FCVT_S_WU 0xd0100053
-#define MASK_FCVT_S_WU  0xfff0007f
+#define MASK_FCVT_S_WU 0xfff0007f
 #define MATCH_FCVT_W_D 0xc2000053
-#define MASK_FCVT_W_D  0xfff0007f
+#define MASK_FCVT_W_D 0xfff0007f
 #define MATCH_FCVT_W_S 0xc0000053
-#define MASK_FCVT_W_S  0xfff0007f
+#define MASK_FCVT_W_S 0xfff0007f
 #define MATCH_FCVT_WU_D 0xc2100053
-#define MASK_FCVT_WU_D  0xfff0007f
+#define MASK_FCVT_WU_D 0xfff0007f
 #define MATCH_FCVT_WU_S 0xc0100053
-#define MASK_FCVT_WU_S  0xfff0007f
+#define MASK_FCVT_WU_S 0xfff0007f
 #define MATCH_FDIV_D 0x1a000053
-#define MASK_FDIV_D  0xfe00007f
+#define MASK_FDIV_D 0xfe00007f
 #define MATCH_FDIV_S 0x18000053
-#define MASK_FDIV_S  0xfe00007f
+#define MASK_FDIV_S 0xfe00007f
 #define MATCH_FENCE 0xf
-#define MASK_FENCE  0x707f
+#define MASK_FENCE 0x707f
 #define MATCH_FENCE_I 0x100f
-#define MASK_FENCE_I  0x707f
+#define MASK_FENCE_I 0x707f
 #define MATCH_FEQ_D 0xa2002053
-#define MASK_FEQ_D  0xfe00707f
+#define MASK_FEQ_D 0xfe00707f
 #define MATCH_FEQ_S 0xa0002053
-#define MASK_FEQ_S  0xfe00707f
+#define MASK_FEQ_S 0xfe00707f
 #define MATCH_FLD 0x3007
-#define MASK_FLD  0x707f
+#define MASK_FLD 0x707f
 #define MATCH_FLE_D 0xa2000053
-#define MASK_FLE_D  0xfe00707f
+#define MASK_FLE_D 0xfe00707f
 #define MATCH_FLE_S 0xa0000053
-#define MASK_FLE_S  0xfe00707f
+#define MASK_FLE_S 0xfe00707f
 #define MATCH_FLT_D 0xa2001053
-#define MASK_FLT_D  0xfe00707f
+#define MASK_FLT_D 0xfe00707f
 #define MATCH_FLT_S 0xa0001053
-#define MASK_FLT_S  0xfe00707f
+#define MASK_FLT_S 0xfe00707f
 #define MATCH_FLW 0x2007
-#define MASK_FLW  0x707f
+#define MASK_FLW 0x707f
 #define MATCH_FMADD_D 0x2000043
-#define MASK_FMADD_D  0x600007f
+#define MASK_FMADD_D 0x600007f
 #define MATCH_FMADD_S 0x43
-#define MASK_FMADD_S  0x600007f
+#define MASK_FMADD_S 0x600007f
 #define MATCH_FMAX_D 0x2a001053
-#define MASK_FMAX_D  0xfe00707f
+#define MASK_FMAX_D 0xfe00707f
 #define MATCH_FMAX_S 0x28001053
-#define MASK_FMAX_S  0xfe00707f
+#define MASK_FMAX_S 0xfe00707f
 #define MATCH_FMIN_D 0x2a000053
-#define MASK_FMIN_D  0xfe00707f
+#define MASK_FMIN_D 0xfe00707f
 #define MATCH_FMIN_S 0x28000053
-#define MASK_FMIN_S  0xfe00707f
+#define MASK_FMIN_S 0xfe00707f
 #define MATCH_FMSUB_D 0x2000047
-#define MASK_FMSUB_D  0x600007f
+#define MASK_FMSUB_D 0x600007f
 #define MATCH_FMSUB_S 0x47
-#define MASK_FMSUB_S  0x600007f
+#define MASK_FMSUB_S 0x600007f
 #define MATCH_FMUL_D 0x12000053
-#define MASK_FMUL_D  0xfe00007f
+#define MASK_FMUL_D 0xfe00007f
 #define MATCH_FMUL_S 0x10000053
-#define MASK_FMUL_S  0xfe00007f
+#define MASK_FMUL_S 0xfe00007f
 #define MATCH_FMV_D_X 0xf2000053
-#define MASK_FMV_D_X  0xfff0707f
+#define MASK_FMV_D_X 0xfff0707f
 #define MATCH_FMV_S_X 0xf0000053
-#define MASK_FMV_S_X  0xfff0707f
+#define MASK_FMV_S_X 0xfff0707f
 #define MATCH_FMV_X_D 0xe2000053
-#define MASK_FMV_X_D  0xfff0707f
+#define MASK_FMV_X_D 0xfff0707f
 #define MATCH_FMV_X_S 0xe0000053
-#define MASK_FMV_X_S  0xfff0707f
+#define MASK_FMV_X_S 0xfff0707f
 #define MATCH_FNMADD_D 0x200004f
-#define MASK_FNMADD_D  0x600007f
+#define MASK_FNMADD_D 0x600007f
 #define MATCH_FNMADD_S 0x4f
-#define MASK_FNMADD_S  0x600007f
+#define MASK_FNMADD_S 0x600007f
 #define MATCH_FNMSUB_D 0x200004b
-#define MASK_FNMSUB_D  0x600007f
+#define MASK_FNMSUB_D 0x600007f
 #define MATCH_FNMSUB_S 0x4b
-#define MASK_FNMSUB_S  0x600007f
+#define MASK_FNMSUB_S 0x600007f
 #define MATCH_FSD 0x3027
-#define MASK_FSD  0x707f
+#define MASK_FSD 0x707f
 #define MATCH_FSGNJ_D 0x22000053
-#define MASK_FSGNJ_D  0xfe00707f
+#define MASK_FSGNJ_D 0xfe00707f
 #define MATCH_FSGNJ_S 0x20000053
-#define MASK_FSGNJ_S  0xfe00707f
+#define MASK_FSGNJ_S 0xfe00707f
 #define MATCH_FSGNJN_D 0x22001053
-#define MASK_FSGNJN_D  0xfe00707f
+#define MASK_FSGNJN_D 0xfe00707f
 #define MATCH_FSGNJN_S 0x20001053
-#define MASK_FSGNJN_S  0xfe00707f
+#define MASK_FSGNJN_S 0xfe00707f
 #define MATCH_FSGNJX_D 0x22002053
-#define MASK_FSGNJX_D  0xfe00707f
+#define MASK_FSGNJX_D 0xfe00707f
 #define MATCH_FSGNJX_S 0x20002053
-#define MASK_FSGNJX_S  0xfe00707f
+#define MASK_FSGNJX_S 0xfe00707f
 #define MATCH_FSQRT_D 0x5a000053
-#define MASK_FSQRT_D  0xfff0007f
+#define MASK_FSQRT_D 0xfff0007f
 #define MATCH_FSQRT_S 0x58000053
-#define MASK_FSQRT_S  0xfff0007f
+#define MASK_FSQRT_S 0xfff0007f
 #define MATCH_FSUB_D 0xa000053
-#define MASK_FSUB_D  0xfe00007f
+#define MASK_FSUB_D 0xfe00007f
 #define MATCH_FSUB_S 0x8000053
-#define MASK_FSUB_S  0xfe00007f
+#define MASK_FSUB_S 0xfe00007f
 #define MATCH_FSW 0x2027
-#define MASK_FSW  0x707f
+#define MASK_FSW 0x707f
 #define MATCH_HRTS 0x20500073
-#define MASK_HRTS  0xffffffff
+#define MASK_HRTS 0xffffffff
 #define MATCH_JAL 0x6f
-#define MASK_JAL  0x7f
+#define MASK_JAL 0x7f
 #define MATCH_JALR 0x67
-#define MASK_JALR  0x707f
+#define MASK_JALR 0x707f
 #define MATCH_LB 0x3
-#define MASK_LB  0x707f
+#define MASK_LB 0x707f
 #define MATCH_LBU 0x4003
-#define MASK_LBU  0x707f
+#define MASK_LBU 0x707f
 #define MATCH_LD 0x3003
-#define MASK_LD  0x707f
+#define MASK_LD 0x707f
 #define MATCH_LH 0x1003
-#define MASK_LH  0x707f
+#define MASK_LH 0x707f
 #define MATCH_LHU 0x5003
-#define MASK_LHU  0x707f
+#define MASK_LHU 0x707f
 #define MATCH_LR_D 0x1000302f
-#define MASK_LR_D  0xf9f0707f
+#define MASK_LR_D 0xf9f0707f
 #define MATCH_LR_W 0x1000202f
-#define MASK_LR_W  0xf9f0707f
+#define MASK_LR_W 0xf9f0707f
 #define MATCH_LUI 0x37
-#define MASK_LUI  0x7f
+#define MASK_LUI 0x7f
 #define MATCH_LW 0x2003
-#define MASK_LW  0x707f
+#define MASK_LW 0x707f
 #define MATCH_LWU 0x6003
-#define MASK_LWU  0x707f
+#define MASK_LWU 0x707f
 #define MATCH_MRTH 0x30600073
-#define MASK_MRTH  0xffffffff
+#define MASK_MRTH 0xffffffff
 #define MATCH_MRTS 0x30500073
-#define MASK_MRTS  0xffffffff
+#define MASK_MRTS 0xffffffff
 #define MATCH_MUL 0x2000033
-#define MASK_MUL  0xfe00707f
+#define MASK_MUL 0xfe00707f
 #define MATCH_MULH 0x2001033
-#define MASK_MULH  0xfe00707f
+#define MASK_MULH 0xfe00707f
 #define MATCH_MULHSU 0x2002033
-#define MASK_MULHSU  0xfe00707f
+#define MASK_MULHSU 0xfe00707f
 #define MATCH_MULHU 0x2003033
-#define MASK_MULHU  0xfe00707f
+#define MASK_MULHU 0xfe00707f
 #define MATCH_MULW 0x200003b
-#define MASK_MULW  0xfe00707f
+#define MASK_MULW 0xfe00707f
 #define MATCH_OR 0x6033
-#define MASK_OR  0xfe00707f
+#define MASK_OR 0xfe00707f
 #define MATCH_ORI 0x6013
-#define MASK_ORI  0x707f
+#define MASK_ORI 0x707f
 #define MATCH_REM 0x2006033
-#define MASK_REM  0xfe00707f
+#define MASK_REM 0xfe00707f
 #define MATCH_REMU 0x2007033
-#define MASK_REMU  0xfe00707f
+#define MASK_REMU 0xfe00707f
 #define MATCH_REMUW 0x200703b
-#define MASK_REMUW  0xfe00707f
+#define MASK_REMUW 0xfe00707f
 #define MATCH_REMW 0x200603b
-#define MASK_REMW  0xfe00707f
+#define MASK_REMW 0xfe00707f
 #define MATCH_SB 0x23
-#define MASK_SB  0x707f
+#define MASK_SB 0x707f
 #define MATCH_SBREAK 0x100073
-#define MASK_SBREAK  0xffffffff
+#define MASK_SBREAK 0xffffffff
 #define MATCH_SC_D 0x1800302f
-#define MASK_SC_D  0xf800707f
+#define MASK_SC_D 0xf800707f
 #define MATCH_SC_W 0x1800202f
-#define MASK_SC_W  0xf800707f
+#define MASK_SC_W 0xf800707f
 #define MATCH_SCALL 0x73
-#define MASK_SCALL  0xffffffff
+#define MASK_SCALL 0xffffffff
 #define MATCH_SD 0x3023
-#define MASK_SD  0x707f
+#define MASK_SD 0x707f
 #define MATCH_SFENCE_VM 0x10100073
-#define MASK_SFENCE_VM  0xfff07fff
+#define MASK_SFENCE_VM 0xfff07fff
 #define MATCH_SH 0x1023
-#define MASK_SH  0x707f
+#define MASK_SH 0x707f
 #define MATCH_SLL 0x1033
-#define MASK_SLL  0xfe00707f
+#define MASK_SLL 0xfe00707f
 #define MATCH_SLLI 0x1013
-#define MASK_SLLI  0xfc00707f
+#define MASK_SLLI 0xfc00707f
 #define MATCH_SLLIW 0x101b
-#define MASK_SLLIW  0xfe00707f
+#define MASK_SLLIW 0xfe00707f
 #define MATCH_SLLW 0x103b
-#define MASK_SLLW  0xfe00707f
+#define MASK_SLLW 0xfe00707f
 #define MATCH_SLT 0x2033
-#define MASK_SLT  0xfe00707f
+#define MASK_SLT 0xfe00707f
 #define MATCH_SLTI 0x2013
-#define MASK_SLTI  0x707f
+#define MASK_SLTI 0x707f
 #define MATCH_SLTIU 0x3013
-#define MASK_SLTIU  0x707f
+#define MASK_SLTIU 0x707f
 #define MATCH_SLTU 0x3033
-#define MASK_SLTU  0xfe00707f
+#define MASK_SLTU 0xfe00707f
 #define MATCH_SRA 0x40005033
-#define MASK_SRA  0xfe00707f
+#define MASK_SRA 0xfe00707f
 #define MATCH_SRAI 0x40005013
-#define MASK_SRAI  0xfc00707f
+#define MASK_SRAI 0xfc00707f
 #define MATCH_SRAIW 0x4000501b
-#define MASK_SRAIW  0xfe00707f
+#define MASK_SRAIW 0xfe00707f
 #define MATCH_SRAW 0x4000503b
-#define MASK_SRAW  0xfe00707f
+#define MASK_SRAW 0xfe00707f
 #define MATCH_SRET 0x10000073
-#define MASK_SRET  0xffffffff
+#define MASK_SRET 0xffffffff
 #define MATCH_SRL 0x5033
-#define MASK_SRL  0xfe00707f
+#define MASK_SRL 0xfe00707f
 #define MATCH_SRLI 0x5013
-#define MASK_SRLI  0xfc00707f
+#define MASK_SRLI 0xfc00707f
 #define MATCH_SRLIW 0x501b
-#define MASK_SRLIW  0xfe00707f
+#define MASK_SRLIW 0xfe00707f
 #define MATCH_SRLW 0x503b
-#define MASK_SRLW  0xfe00707f
+#define MASK_SRLW 0xfe00707f
 #define MATCH_SUB 0x40000033
-#define MASK_SUB  0xfe00707f
+#define MASK_SUB 0xfe00707f
 #define MATCH_SUBW 0x4000003b
-#define MASK_SUBW  0xfe00707f
+#define MASK_SUBW 0xfe00707f
 #define MATCH_SW 0x2023
-#define MASK_SW  0x707f
+#define MASK_SW 0x707f
 #define MATCH_WFI 0x10200073
-#define MASK_WFI  0xffffffff
+#define MASK_WFI 0xffffffff
 #define MATCH_XOR 0x4033
-#define MASK_XOR  0xfe00707f
+#define MASK_XOR 0xfe00707f
 #define MATCH_XORI 0x4013
-#define MASK_XORI  0x707f
+#define MASK_XORI 0x707f
 #define CSR_FFLAGS 0x1
 #define CSR_FRM 0x2
 #define CSR_FCSR 0x3
@@ -843,7 +842,7 @@ DECLARE_CSR(mtime, CSR_MTIME)
 DECLARE_CSR(mcpuid, CSR_MCPUID)
 DECLARE_CSR(mimpid, CSR_MIMPID)
 DECLARE_CSR(mhartid, CSR_MHARTID)
-DECLARE_CSR(mtohost, CSR_MTOHOST)
+DECLARE_CSR(mcontext, CSR_MTOHOST)
 DECLARE_CSR(mfromhost, CSR_MFROMHOST)
 DECLARE_CSR(mreset, CSR_MRESET)
 DECLARE_CSR(send_ipi, CSR_SEND_IPI)
@@ -911,7 +910,7 @@ DECLARE_CAUSE("mtime", CAUSE_MTIME)
 DECLARE_CAUSE("mcpuid", CAUSE_MCPUID)
 DECLARE_CAUSE("mimpid", CAUSE_MIMPID)
 DECLARE_CAUSE("mhartid", CAUSE_MHARTID)
-DECLARE_CAUSE("mtohost", CAUSE_MTOHOST)
+DECLARE_CAUSE("mcontext", CAUSE_MTOHOST)
 DECLARE_CAUSE("mfromhost", CAUSE_MFROMHOST)
 DECLARE_CAUSE("mreset", CAUSE_MRESET)
 DECLARE_CAUSE("send_ipi", CAUSE_SEND_IPI)

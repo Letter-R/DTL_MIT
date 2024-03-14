@@ -69,7 +69,7 @@ rv32ui_tests_vmh  := $(patsubst %,$(vmh_dir)/%.riscv.vmh, $(rv32ui_tests))
 $(rv32ui_tests_vmh): $(vmh_dir)/%.riscv.vmh: $(bin_dir)/%.riscv
 	@echo "@0" > $(vmh_dir)/temp
 	$(RISCV_ELF2HEX) $(VMH_WIDTH) $(VMH_DEPTH) $< >> $(vmh_dir)/temp
-	python $(asmdir)/../trans_vmh.py $(vmh_dir)/temp $@
+	python3 $(asmdir)/../trans_vmh.py $(vmh_dir)/temp $@
 
 $(rv32ui_tests_dump): $(dump_dir)/%.riscv.dump: $(bin_dir)/%.riscv
 	$(RISCV_OBJDUMP) $< > $@
@@ -92,7 +92,7 @@ $(vmh_dir):
 	mkdir -p $@
 
 
-all: $(bin_dir) $(obj_dir) $(dump_dir) $(rv32ui_tests_dump) # $(rv32ui_tests_vmh)
+all: $(bin_dir) $(obj_dir) $(dump_dir) $(rv32ui_tests_dump) $(vmh_dir) $(rv32ui_tests_vmh)
 
 
 #------------------------------------------------------------

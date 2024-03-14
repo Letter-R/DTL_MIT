@@ -9,14 +9,13 @@
 // Begin Macro
 //-----------------------------------------------------------------------
 
-#define RVTEST_RV32U                                                    
+#define RVTEST_RV32U
 
-#define RVTEST_CODE_BEGIN                                               \
-        .text;                                                          \
-        .align  6;                                                      \
-        .globl _start;                                                  \
-_start:                                                                 
-
+#define RVTEST_CODE_BEGIN \
+        .text;            \
+        .align 6;         \
+        .globl _start;    \
+        _start:
 
 //-----------------------------------------------------------------------
 // TESTNUM reg Macro
@@ -28,20 +27,20 @@ _start:
 // Print Macro
 //-----------------------------------------------------------------------
 
-#define PRINT_NEWLINE(tmp_reg)                                          \
-        la tmp_reg, 0x0001000A;                                         \
-        csrw mtohost, tmp_reg
+#define PRINT_NEWLINE(tmp_reg)  \
+        la tmp_reg, 0x0001000A; \
+        csrw mcontext, tmp_reg
 
-#define PRINT_INT(arg_reg, tmp_reg_1, tmp_reg_2)                        \
-        slli tmp_reg_1, arg_reg, 16;                                    \
-        srli tmp_reg_1, tmp_reg_1, 16;                                  \
-        la tmp_reg_2, 0x00020000;                                       \
-        or tmp_reg_2, tmp_reg_1, tmp_reg_2;                             \
-        csrw mtohost, tmp_reg_2;                                        \
-        srli tmp_reg_1, arg_reg, 16;                                    \
-        la tmp_reg_2, 0x00030000;                                       \
-        or tmp_reg_2, tmp_reg_1, tmp_reg_2;                             \
-        csrw mtohost, tmp_reg_2                                         \
+#define PRINT_INT(arg_reg, tmp_reg_1, tmp_reg_2) \
+        slli tmp_reg_1, arg_reg, 16;             \
+        srli tmp_reg_1, tmp_reg_1, 16;           \
+        la tmp_reg_2, 0x00020000;                \
+        or tmp_reg_2, tmp_reg_1, tmp_reg_2;      \
+        csrw mcontext, tmp_reg_2;                \
+        srli tmp_reg_1, arg_reg, 16;             \
+        la tmp_reg_2, 0x00030000;                \
+        or tmp_reg_2, tmp_reg_1, tmp_reg_2;      \
+        csrw mcontext, tmp_reg_2
 
 //-----------------------------------------------------------------------
 // End Macro (return value in TESTNUM)
@@ -49,15 +48,16 @@ _start:
 // we print cycle (1st line) & instruction (2nd line)
 //-----------------------------------------------------------------------
 
-#define RVTEST_CODE_END                                                 \
-exit:   csrr a0, cycle;                                                 \
-        csrr a1, instret;                                               \
-        PRINT_INT(a0, a2, a3);                                          \
-        PRINT_NEWLINE(a2);                                              \
-        PRINT_INT(a1, a2, x3);                                          \
-        PRINT_NEWLINE(a2);                                              \
-        csrw mtohost, TESTNUM;                                          \
-1:      j 1b
+#define RVTEST_CODE_END         \
+        exit:                   \
+        csrr a0, cycle;         \
+        csrr a1, instret;       \
+        PRINT_INT(a0, a2, a3);  \
+        PRINT_NEWLINE(a2);      \
+        PRINT_INT(a1, a2, x3);  \
+        PRINT_NEWLINE(a2);      \
+        csrw mcontext, TESTNUM; \
+        1 : j 1b
 
 //-----------------------------------------------------------------------
 // Pass/Fail Macro (TESTNUM stores the return value)
@@ -65,11 +65,11 @@ exit:   csrr a0, cycle;                                                 \
 // Fail: return failed test id (already in TESTNUM)
 //-----------------------------------------------------------------------
 
-#define RVTEST_PASS                                                     \
-        li TESTNUM, 0;                                                  \
+#define RVTEST_PASS    \
+        li TESTNUM, 0; \
         j exit
 
-#define RVTEST_FAIL                                                     \
+#define RVTEST_FAIL \
         j exit
 
 //-----------------------------------------------------------------------
@@ -78,7 +78,13 @@ exit:   csrr a0, cycle;                                                 \
 
 #define EXTRA_DATA
 
-#define RVTEST_DATA_BEGIN EXTRA_DATA .align 4; .global begin_signature; begin_signature:
-#define RVTEST_DATA_END .align 4; .global end_signature; end_signature:
+#define RVTEST_DATA_BEGIN        \
+        EXTRA_DATA.align 4;      \
+        .global begin_signature; \
+        begin_signature:
+#define RVTEST_DATA_END        \
+        .align 4;              \
+        .global end_signature; \
+        end_signature:
 
 #endif
