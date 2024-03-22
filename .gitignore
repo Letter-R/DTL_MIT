@@ -17,3 +17,7 @@ bscdir
 oss-cad-suite/
 *.pcm
 tmp/
+riscv/
+*.gz
+tmp/
+riscv-isa-sim/

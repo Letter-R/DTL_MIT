@@ -1,0 +1,5 @@
+programs/build
+logs
+bluesim
+buildDir
+ply*/
