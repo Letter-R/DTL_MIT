@@ -1,0 +1,94 @@
+IPC = instructions / cycles
+for two stage, 100%>IPC 1, 0% > IPC 0.5
+Acc = (IPC-0.5)/0.5 * 100%
+
+
+-- benchmark test: median --
+Cycles = 5086
+Insts  = 4243
+IPC = 0.834
+Acc = 0.67
+
+-- benchmark test: multiply --
+Cycles = 27007
+Insts  = 20893
+IPC = 0.774
+Acc = 
+
+-- benchmark test: qsort --
+Cycles = 145936
+Insts  = 123496
+IPC = 0.846
+
+-- benchmark test: towers --
+Cycles = 4340
+Insts  = 4168
+IPC = 0.960
+
+-- benchmark test: vvadd --
+Cycles = 2706
+Insts  = 2408
+IPC = 0.890
+
+
+
+
+
+
+-- benchmark test: median --
+Cycles = 4877
+Insts  = 4243
+Return 0
+PASSED
+-- benchmark test: multiply --
+Cycles = 21481
+Insts  = 20893
+Return 0
+PASSED
+-- benchmark test: qsort --
+Cycles = 139422
+Insts  = 123496
+Return 0
+PASSED
+-- benchmark test: towers --
+Cycles = 4263
+Insts  = 4168
+Return 0
+PASSED
+-- benchmark test: vvadd --
+Cycles = 2409
+Insts  = 2408
+Return 0
+PASSED
+root@lc-PC:/home/DLT_MIT/MIT6175/Lab5# ./run_bmarks.sh 
+-- benchmark test: median --
+Cycles = 4877
+Insts  = 4243
+Return 0
+PASSED
+-- benchmark test: multiply --
+Cycles = 21481
+Insts  = 20893
+Return 0
+PASSED
+-- benchmark test: qsort --
+Cycles = 139422
+Insts  = 123496
+Return 0
+PASSED
+-- benchmark test: towers --
+Cycles = 4263
+Insts  = 4168
+
+
+-- benchmark test: vvadd --
+Cycles = 2409
+Insts  = 2408
+
+
+
+
+
+use instructions opcodes to classify Insts
+for one kind of branch, branch/+4 base on the last time
+better for regular control

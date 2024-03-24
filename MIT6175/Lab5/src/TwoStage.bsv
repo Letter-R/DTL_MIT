@@ -25,48 +25,53 @@ typedef struct{
 (*synthesize*)
 module mkProc(Proc);
     
-    Ehr#(2,Addr) pc<-mkEhrU;
+    Ehr#(2,Addr) pc<-mkEhr(0);
     
     RFile       rf<-mkRFile;
     IMemory     iMem<-mkIMemory;
     DMemory     dMem<-mkDMemory;
     CsrFile     csrf<-mkCsrFile;
 
-    Fifo#(2,Dec2Ex) d2e<-mkCFFifo;
+    Fifo#(4,Dec2Ex) d2e<-mkCFFifo;
 
     Bool memReady=iMem.init.done() && dMem.init.done();
-    
+    rule initMem (!memReady);
+        let e = tagged InitDone;
+        iMem.init.request.put(e);
+        dMem.init.request.put(e);
+    endrule
+
+
+    // doFetch read pc[0] than write pc[0]
     rule doFetch(csrf.started);
+        // IF
         Data            inst=iMem.req(pc[0]);
         Dec2Ex          dec2exe;
-        let predPc      =pc[0]+4;
         dec2exe.pc      =pc[0];
-        dec2exe.predPc  =predPc;
+        // ID
         dec2exe.dInst   =decode(inst);
+        // predict
+        let predPc      =pc[0]+4;
+        dec2exe.predPc  =predPc;
+        pc[0]<=predPc;
 
         $display("pc:%h inst:(%h) expanded: ",dec2exe.pc,inst,showInst(inst));
         $fflush(stdout);
 
-        if(dec2exe.dInst.iType==Unsupported) begin
-            $fwrite(stderr, "ERROR: Executing unsupported instruction at pc: %x. Exiting\n", dec2exe.pc);
-            $finish;
-        end
-
         d2e.enq(dec2exe);
-        pc[0]<=predPc;
-
-
+        
     endrule
 
     rule doExecute(csrf.started);
-
+        // read DecodedInst dInst, Addr pc, Addr predPc
         Dec2Ex dec2exe = d2e.first;
         d2e.deq();
 
+        // prepare execute instruction info
         Data        rVal1=rf.rd1(fromMaybe(?,dec2exe.dInst.src1));
         Data        rVal2=rf.rd2(fromMaybe(?,dec2exe.dInst.src2));
         Data        csrVal=csrf.rd(fromMaybe(?,dec2exe.dInst.csr));
-
+        // mispredict get here
         ExecInst    eInst=exec(
             dec2exe.dInst,
             rVal1,rVal2,
@@ -74,26 +79,28 @@ module mkProc(Proc);
             csrVal
             );
 
+        // data memory
         if(eInst.iType==Ld) begin
             eInst.data<-dMem.req(MemReq{op:Ld,addr:eInst.addr,data:?});    
         end else if(eInst.iType==St) begin
             let dummy<-dMem.req(MemReq{op:St,addr:eInst.addr,data:eInst.data});
         end
 
+        // register file
         if(isValid(eInst.dst)) begin
             rf.wr(fromMaybe(?,eInst.dst),eInst.data);
         end
 
         csrf.wr(eInst.iType==Csrw?eInst.csr:Invalid,eInst.data);
 
+        // handle mispredict
         if(eInst.mispredict) begin
             $display("Mispredict!");
             $fflush(stdout);
 
-            d2e.clear();
-            if(eInst.brTaken) begin
-                pc[1]<=eInst.addr;
-            end
+            d2e.clear();        // clear d2e
+            pc[1]<=eInst.addr;  // cover pc
+
         end
     endrule
 
