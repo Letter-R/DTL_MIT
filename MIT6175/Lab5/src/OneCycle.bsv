@@ -26,28 +26,46 @@ module mkProc(Proc);
 
     Bool memReady = iMem.init.done() && dMem.init.done();
     rule test (!memReady);
-	let e = tagged InitDone;
-	iMem.init.request.put(e);
-	dMem.init.request.put(e);
+        let e = tagged InitDone;
+        iMem.init.request.put(e);
+        dMem.init.request.put(e);
     endrule
     rule doProc(csrf.started);
+        // S1 IF
+        // typedef Bit#(DataSz) Data;
+        // fetch Bit#(DataSz) instruction
         Data inst = iMem.req(pc);
 
-        // decode
+        // S2 ID
+        //
+        // typedef struct {
+        //     IType            iType;
+        //     AluFunc          aluFunc;
+        //     BrFunc           brFunc;
+        //     Maybe#(RIndx)    dst;
+        //     Maybe#(RIndx)    src1;
+        //     Maybe#(RIndx)    src2;
+        //     Maybe#(CsrIndx)  csr;
+        //     Maybe#(Data)     imm;
+        // } DecodedInst deriving(Bits, Eq, FShow);
+        // 
+        // decode instruction
         DecodedInst dInst = decode(inst);
-
-        // read general purpose register values 
+        // read general purpose register values
+        // get Bits
         Data rVal1 = rf.rd1(fromMaybe(?, dInst.src1));
         Data rVal2 = rf.rd2(fromMaybe(?, dInst.src2));
-
         // read CSR values (for CSRR inst)
         Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
 
+        // S3 EX
         // execute
         ExecInst eInst = exec(dInst, rVal1, rVal2, pc, ?, csrVal);  
 		// The fifth argument above is the predicted pc, to detect if it was mispredicted. 
 		// Since there is no branch prediction, this field is sent with a random value
 
+
+        // S4 MEM
         // memory
         if(eInst.iType == Ld) begin
             eInst.data <- dMem.req(MemReq{op: Ld, addr: eInst.addr, data: ?});
@@ -59,7 +77,7 @@ module mkProc(Proc);
 
         // trace - print the instruction
         $display("pc: %h inst: (%h) expanded: ", pc, inst, showInst(inst));
-	$fflush(stdout);
+	    $fflush(stdout);
 
         // check unsupported instruction at commit time. Exiting
         if(eInst.iType == Unsupported) begin
@@ -97,6 +115,7 @@ module mkProc(Proc);
 		end
 		*/
 
+        // S5 WB
         // write back to reg file
         if(isValid(eInst.dst)) begin
             rf.wr(fromMaybe(?, eInst.dst), eInst.data);

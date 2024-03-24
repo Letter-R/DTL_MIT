@@ -26,93 +26,112 @@ typedef enum {
     WriteBack
 } Stage deriving(Bits, Eq, FShow);
 
+typedef struct {
+    DecodedInst dInst;
+    Data rVal1;
+    Data rVal2;
+    Data csrVal;
+} Mess2 deriving(Bits, Eq, FShow);
+
 (* synthesize *)
 module mkProc(Proc);
-    Reg#(Addr) pc <- mkRegU;
+    Reg#(Addr) pc <- mkRegU;    
     RFile      rf <- mkRFile;
-    DelayedMemory  mem <- mkDelayedMemory;
+    DelayedMemory  mem <- mkDelayedMemory; 
+    
+    Reg#(Stage) stage <- mkReg(Fetch);
+
+    // Reg#(Data) mess1 <- mkRegU;
+    Reg#(Mess2) mess2 <- mkRegU;
+    Reg#(ExecInst) mess3 <- mkRegU;
+
     CsrFile  csrf <- mkCsrFile;
 
-    Reg#(Stage) curStage <- mkReg(Fetch);
-
     Bool memReady = mem.init.done();
-    Reg#(DecodedInst) dInst <- mkRegU();
-    Reg#(ExecInst) eInst <- mkRegU();
-
-    rule test (!memReady);
+    rule initMem (!memReady);
         let e = tagged InitDone;
         mem.init.request.put(e);
     endrule
 
-    rule doFetch(csrf.started && curStage == Fetch && memReady);
-        mem.req(MemReq{op: Ld, addr: pc, data: ?});
-        curStage <= Decode;
+    rule doStage1(csrf.started && (stage==Fetch) && memReady);
+        $display("in stage 1");
+        // S1 IF
+        // typedef Bit#(DataSz) Data;
+        // fetch Bit#(DataSz) instruction
+        mem.req(MemReq{op:Ld,addr:pc,data:?});
+        // mess1 <= inst;
+        stage <= Decode;
     endrule
-    
-    rule doDecode (csrf.started && curStage == Decode && memReady);
-        // decode
 
-        Data inst <- mem.resp;
-        dInst <= decode(inst);
-        curStage <= Execute;
+    rule doStage2(csrf.started && (stage==Decode) && memReady);
+        $display("in stage 2");
+        let inst <- mem.resp();
+        // S2 ID
+        // decode instruction
+        DecodedInst dInst = decode(inst);
+        // read general purpose register values
+        Data rVal1 = rf.rd1(fromMaybe(?, dInst.src1));
+        Data rVal2 = rf.rd2(fromMaybe(?, dInst.src2));
+        // read CSR values (for CSRR inst)
+        Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
+
+        stage <= Execute;
+        mess2 <= Mess2{dInst: dInst, rVal1: rVal1, rVal2: rVal2, csrVal: csrVal};
 
         // trace - print the instruction
         $display("pc: %h inst: (%h) expanded: ", pc, inst, showInst(inst));
 	    $fflush(stdout);
+
     endrule
 
-    rule doExecute(csrf.started && curStage == Execute && memReady);
+    rule doStage3(csrf.started && (stage==Execute) && memReady);
+        let dInst = mess2.dInst;
+        let rVal1 = mess2.rVal1;
+        let rVal2 = mess2.rVal2;
+        let csrVal = mess2.csrVal;
 
-        // read general purpose register values    
-        Data rVal1 = rf.rd1(fromMaybe(?, dInst.src1));
-        Data rVal2 = rf.rd2(fromMaybe(?, dInst.src2));
-
-        // read CSR values (for CSRR inst)
-        Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
-
+        // S3 EX
         // execute
-        ExecInst eInstTmp = exec(dInst, rVal1, rVal2, pc, ?, csrVal);  
-		// memory
-        // The fifth argument above is the predicted pc, to detect if it was mispredicted. 
-		// Since there is no branch prediction, this field is sent with a random value
-        if(eInstTmp.iType == Ld) begin
-            mem.req(MemReq{op: Ld, addr: eInstTmp.addr, data: ?});
-        end else if(eInstTmp.iType == St) begin
-            mem.req(MemReq{op: St, addr: eInstTmp.addr, data: eInstTmp.data});
+        ExecInst eInst = exec(dInst, rVal1, rVal2, pc, ?, csrVal);  
+
+
+        // S4 MEM
+        // memory
+        if(eInst.iType == Ld) begin
+            mem.req(MemReq{op: Ld, addr: eInst.addr, data: ?});
+        end else if(eInst.iType == St) begin
+            mem.req(MemReq{op: St, addr: eInst.addr, data: eInst.data});
         end
 
-        eInst <= eInstTmp;
-
-        curStage <= WriteBack;
-    endrule
-
-    rule doWriteBack(csrf.started && curStage == WriteBack && memReady);
-		// commit
-        
         // check unsupported instruction at commit time. Exiting
         if(eInst.iType == Unsupported) begin
             $fwrite(stderr, "ERROR: Executing unsupported instruction at pc: %x. Exiting\n", pc);
             $finish;
         end
+        mess3 <= eInst;
+        stage <= WriteBack;
+    endrule
 
-        let eInstTmp = eInst;
-        if(eInstTmp.iType == Ld) begin
-            eInstTmp.data <- mem.resp;
+    rule doStage4(csrf.started && (stage==WriteBack) && memReady);
+        let eInst = mess3;
+
+        if(eInst.iType == Ld) begin
+            eInst.data <- mem.resp();
         end
-
-
+    
+        // S5 WB
         // write back to reg file
-        if(isValid(eInstTmp.dst)) begin
-            rf.wr(fromMaybe(?, eInstTmp.dst), eInstTmp.data);
+        if(isValid(eInst.dst)) begin
+            rf.wr(fromMaybe(?, eInst.dst), eInst.data);
         end
 
         // update the pc depending on whether the branch is taken or not
-        pc <= eInstTmp.brTaken ? eInstTmp.addr : pc + 4;
+        pc <= eInst.brTaken ? eInst.addr : pc + 4;
 
         // CSR write for sending data to host & stats
-        csrf.wr(eInstTmp.iType == Csrw ? eInstTmp.csr : Invalid, eInstTmp.data);
+        csrf.wr(eInst.iType == Csrw ? eInst.csr : Invalid, eInst.data);
 
-        curStage <= Fetch;
+        stage <= Fetch;
     endrule
 
     method ActionValue#(CpuToHostData) cpuToHost;
@@ -122,10 +141,9 @@ module mkProc(Proc);
 
     method Action hostToCpu(Bit#(32) startpc) if ( !csrf.started && memReady );
         csrf.start(0); // only 1 core, id = 0
-	$display("Start at pc 200\n");
-	$fflush(stdout);
+        $display("Start at pc 200\n");
+        $fflush(stdout);
         pc <= startpc;
-        curStage <= Fetch;
     endmethod
 
     interface iMemInit = mem.init;
