@@ -16,7 +16,6 @@ module mkBtb( Btb#(indexSize) ) provisos( Add#(indexSize,a__,32), NumAlias#(TSub
     Vector#(TExp#(indexSize), Reg#(Bit#(tagSize)))    tags <- replicateM(mkReg(0));
     Vector#(TExp#(indexSize), Reg#(Bool))            valid <- replicateM(mkReg(False));
 
-    //                                           instruction align
     function Bit#(indexSize) getIndex(Addr pc) = truncate(pc >> 2);
     function Bit#(tagSize) getTag(Addr pc) = truncateLSB(pc);
 
@@ -30,21 +29,19 @@ module mkBtb( Btb#(indexSize) ) provisos( Add#(indexSize,a__,32), NumAlias#(TSub
             return (pc + 4);
         end
     endmethod
-    
-    // update only for BRANCH/JUMP instructions
-    // branch: condition
-    // jump: non-condition
-    // 
-    // when brach taken: real nextPc != thisPc + 4
+
     method Action update(Addr thisPc, Addr nextPc);
+		let index = getIndex(thisPc);
+		let tag = getTag(thisPc);
         if( nextPc != thisPc + 4 ) begin
-            let index = getIndex(thisPc);
-            let tag = getTag(thisPc);
             // update entry
             valid[index] <= True;
             tags[index] <= tag;
             targets[index] <= nextPc;
         end
+		else if(tag == tags[index]) begin
+			valid[index] <= False;
+		end
     endmethod
 endmodule
 
