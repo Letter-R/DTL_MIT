@@ -1,0 +1,8 @@
+Q1
+after "sw" instruction, 
+			//when the instruction that caused the misdirection is a store, the memory address for the store is set as next pc
+			//unsuported instruction ensues...
+            //
+            //eInst.addr = (dInst.iType == Ld || dInst.iType == St) ? aluRes : brAddr;
+maybe, break down eInst.addr into two attributes 
+            

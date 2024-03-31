@@ -1,4 +1,4 @@
-// Two stage
+// Two stage BTB!
 
 import Types::*;
 import ProcTypes::*;
