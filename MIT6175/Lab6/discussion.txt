@@ -6,3 +6,56 @@ after "sw" instruction,
             //eInst.addr = (dInst.iType == Ld || dInst.iType == St) ? aluRes : brAddr;
 maybe, break down eInst.addr into two attributes 
             
+Q2
+add cycle mark
+
+Q3
+EXE found mis-predict
+next cycle IF stage fetch the new pc
+but may need 3 cycle to deq scoreboard
+and other 3 cycle to deal 3 wrong insts(IF < EXE(stage 4))
+
+Q4
+ID          RF
+RF stall    EXE
+RF stall    MEM
+RF stall    WB
+RF
+3 cycle
+
+Q5 
+-- assembly test: bpred_bht --
+5178
+1007
+
+-- assembly test: bpred_j_noloop --
+235
+34
+
+-- assembly test: bpred_j --
+2224
+1803
+
+-- assembly test: bpred_ras --
+1562
+283
+
+Benchmark median
+Cycles = 15649
+Insts  = 4243
+
+Benchmark multiply
+Cycles = 39306
+Insts  = 20893
+
+Benchmark qsort
+Cycles = 354693
+Insts  = 123496
+
+Benchmark tower
+Cycles = 7173
+Insts  = 4168
+
+Benchmark vvadd
+Cycles = 3637
+Insts  = 2408

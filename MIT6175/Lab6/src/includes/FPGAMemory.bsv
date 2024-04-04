@@ -3,6 +3,13 @@ import MemTypes::*;
 import MemInit::*;
 import BRAM::*;
 
+// typedef enum{Ld, St} MemOp deriving(Eq, Bits, FShow);
+// typedef struct{
+//     MemOp op;
+//     Addr  addr;
+//     Data  data;
+// } MemReq deriving(Eq, Bits, FShow);
+
 interface FPGAMemory;
     method Action req(MemReq r);
     method ActionValue#(MemResp) resp;
