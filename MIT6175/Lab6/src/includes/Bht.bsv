@@ -1,62 +1,47 @@
 import Types::*;
 import ProcTypes::*;
 import RegFile::*;
-import Vector::*; 
+import Vector::*;
 
-typedef Bit#(idxBits) BhtIndex#(numeric type idxBits);
-
-interface DirectionPred#(numeric type idxBits);
+interface Bht#(numeric type indexSize);
     method Addr ppcDP(Addr pc, Addr targetPC);
     method Action update(Addr pc, Bool taken);
 endinterface
 
+typedef Bit#(indexSize) BhtIndex#(numeric type indexSize);
 
-module mkBht(DirectionPred#(idxBits));
-
-    Vector#(TExp#(idxBits), Reg#(Bit#(2))) bhtArr <- replicateM(mkReg(2'b01));
-
-    function BhtIndex#(idxBits) getBhtIndex(Addr pc);
-        return pc[valueOf(idxBits)+1:2];
-    endfunction
-
-    function Bit#(2) newDpBits(Bit#(2) curDpBits, Bool taken);
-        if (curDpBits == 2'b11 && taken == True) begin
-            return 2'b11;
-        end else if (curDpBits == 2'b00 && taken == False) begin
-            return 2'b00;
+// BHT#(16)
+module mkBht(Bht#(indexSize)) provisos( Add#(indexSize,a__,32));
+    // 2^16 Reg
+    Vector#(TExp#(indexSize), Reg#(Bit#(2))) bhtArr <- replicateM(mkReg(2'b01));
+    // Bit#(16) [17:2]
+    function BhtIndex#(indexSize) getBhtIndex(Addr pc) = truncate(pc >> 2);
+    function Addr computeTarget(Addr pc, Addr targetPC, Bool taken) = taken ? targetPC : pc + 4;  
+    function Bool extractDir(Bit#(2) arr) = (arr >> 1) == 1;
+    function Bit#(2) getBhtEntry(BhtIndex#(indexSize) index) = bhtArr[index];
+    function Bit#(2) newDpBits(Bit#(2) dpBits, Bool taken);  
+        if (dpBits == 2'b11 && taken == True) begin
+            return dpBits;
+        end else if (dpBits == 2'b00 && taken == False) begin
+            return dpBits;
         end else if (taken == True) begin
-            return curDpBits + 1;
+            return dpBits + 1;
         end else begin
-            return curDpBits - 1;
+            return dpBits - 1;
         end
     endfunction
-
-    function Bit#(2) getBhtEntry(BhtIndex#(idxBits) index);
-        return bhtArr[index];
-    endfunction
-
-    function Addr computeTarget(Addr pc, Addr targetPC, Bool taken);
-        return taken ? targetPC : pc + 4;
-    endfunction
-
-    function Bool extractDir(Bit#(2) val);
-        return val[1] == 1;
-    endfunction
-
-
+    
     method Addr ppcDP(Addr pc, Addr targetPC);
-        let index = getBhtIndex(pc);
-        let entry = getBhtEntry(index);
-        let taken = extractDir(entry);
-        return computeTarget(pc, targetPC, taken);
+        BhtIndex#(indexSize) index = getBhtIndex(pc);
+        let direction =  extractDir(bhtArr[index]);
+        return computeTarget(pc, targetPC, direction); 
     endmethod
-
-
+    
     method Action update(Addr pc, Bool taken);
-        let index = getBhtIndex(pc);
-        let entry = getBhtEntry(index);
-        let next_entry = newDpBits(entry, taken);
-        bhtArr[index] <= next_entry;
+        BhtIndex#(indexSize) index = getBhtIndex(pc);
+        let dpBits = getBhtEntry(index);
+        bhtArr[index] <= newDpBits(dpBits,taken); 
     endmethod
-
 endmodule
+
+

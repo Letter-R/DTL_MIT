@@ -23,39 +23,73 @@ RF stall    WB
 RF
 3 cycle
 
-Q5 
+Q5      change IF run at end of cycle 
 -- assembly test: bpred_bht --
-5178
+5178           -->4957
 1007
 
 -- assembly test: bpred_j_noloop --
-235
+235           -->204
 34
 
 -- assembly test: bpred_j --
-2224
+2224           -->2159
 1803
 
 -- assembly test: bpred_ras --
-1562
+1562           -->1534
 283
 
 Benchmark median
-Cycles = 15649
+Cycles = 15649          -->15403
 Insts  = 4243
 
 Benchmark multiply
-Cycles = 39306
+Cycles = 39306          -->39100
 Insts  = 20893
 
 Benchmark qsort
-Cycles = 354693
+Cycles = 354693          -->354476
 Insts  = 123496
 
 Benchmark tower
-Cycles = 7173
+Cycles = 7173            -->7018
 Insts  = 4168
 
 Benchmark vvadd
-Cycles = 3637
+Cycles = 3637            -->3635
 Insts  = 2408
+
+Q6
+
+- Absolute Jumps – Decode
+- Register Jumps – RFetch
+- Branches – Exec
+
+BHT work for B-type, predict(look up) in Instruction Decode stage
+PC+4 at IF stage, then BHT change PC at ID stage
+
+taken or not predict at ID, 
+
+     for Absolute Jumps, Addr at Decode stage
+     for Register Jumps, Addr at RFetch stage
+     for Branches      , Addr at Exec   stage
+
+mantenance two epoch:
+     epoch1 for JAL and JALR
+     epoch2 for Branches
+
+if instuct epoch1 and epoch2 both equal, not a mis-predict
+else drop it 
+
+epoch1 will update in ID and RF
+epoch2 will update in EXE stage
+
+       only w ppc once          |      
+    ID           <    RF          <          EXE         <        IF
+  w ppc[0]         w ppc[1]           r&w ppc[2]            read ppc[3]
+ JAL >> !epoch1  JALR >> !epoch1   Branch >> !epoch2        BTB write ppc[3]
+     update predict next Addr     |   check predic right  |   read next ppc
+
+
+

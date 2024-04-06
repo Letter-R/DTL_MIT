@@ -1,337 +1,266 @@
-// Six stage
+// change to six stage
+
+// Instruction Fetch -- request instruction from iMem and update PC
+// Decode -- receive response from iMem and decode instruction
+// Register Fetch -- read from the register file
+// Execute -- execute the instruction and redirect the processor if necessary
+// Memory -- send memory request to dMem
+// Write Back -- receive memory response from dMem (if applicable) and write to register file
+
 
 import Types::*;
 import ProcTypes::*;
 import MemTypes::*;
 import MemInit::*;
 import RFile::*;
-import FPGAMemory::*;
+import IMemory::*;
+import DMemory::*;
 import Decode::*;
 import Exec::*;
 import CsrFile::*;
 import Fifo::*;
 import Ehr::*;
 import Btb::*;
-import Bht::*;
 import Scoreboard::*;
-
-
-typedef struct {
-    Addr pc;
-    Addr predPc;
-    Bool eepoch;
-    Bool depoch;
-} Fetch2Decode deriving (Bits, Eq);
+import FPGAMemory::*;
+import Bht::*;
 
 typedef struct {
     Addr pc;
     Addr predPc;
-    DecodedInst dInst;
-    Bool eepoch;
-} Decode2RegFetch deriving (Bits, Eq);
-
-// Data structure for Fetch to Execute stage
-typedef struct {
-    Addr pc;
-    Addr predPc;
-    DecodedInst dInst;
-    Data rVal1;
-    Data rVal2;
-    Data csrVal;
-    Bool eepoch;
-} RegFetch2Execute deriving (Bits, Eq);
+    Bool epoch;
+} IF2ID deriving (Bits, Eq);
 
 typedef struct {
     Addr pc;
     Addr predPc;
-    DecodedInst dInst;
-    Data rVal1;
-    Data rVal2;
-    Data csrVal;
-    ExecInst eInst;
-    Bool eepoch;
-} Execute2Memory deriving (Bits, Eq);
+    Bool epoch;
+	DecodedInst dInst;
+} ID2RF deriving (Bits, Eq);
 
 typedef struct {
     Addr pc;
     Addr predPc;
-    DecodedInst dInst;
-    Data rVal1;
-    Data rVal2;
-    Data csrVal;
-    ExecInst eInst;
-    Bool eepoch;
-} Memory2WriteBack deriving (Bits, Eq);
+    Bool epoch;
+	DecodedInst dInst;
+	Data rVal1;
+	Data rVal2;
+	Data csrVal;
+} RF2EXE deriving (Bits, Eq);
 
-// redirect msg from Execute stage
 typedef struct {
-	Addr pc;
-	Addr nextPc;
-} ExeRedirect deriving (Bits, Eq);
+    Addr pc;
+    Maybe#(ExecInst) eInst;
+} EXE2MEM deriving (Bits, Eq);
 
-// redirect msg from Execute stage
 typedef struct {
-	Addr pc;
-	Addr nextPc;
-} DecRedirect deriving (Bits, Eq);
+    Addr pc;
+    Maybe#(ExecInst) eInst;
+} MEM2WB deriving (Bits, Eq);
 
 (* synthesize *)
 module mkProc(Proc);
-    Ehr#(2, Addr) pcReg <- mkEhr(?);
     RFile            rf <- mkRFile;
-	Scoreboard#(4)   sb <- mkCFScoreboard;
-	FPGAMemory        iMem <- mkFPGAMemory;
-    FPGAMemory        dMem <- mkFPGAMemory;
+	Scoreboard#(6)   sb <- mkCFScoreboard;
+	FPGAMemory     iMem <- mkFPGAMemory;
+    FPGAMemory     dMem <- mkFPGAMemory;
     CsrFile        csrf <- mkCsrFile;
-    Btb#(6)         btb <- mkBtb; // 64-entry BTB
-    DirectionPred#(8) bht <- mkBht; 
+    Btb#(6)         btb <- mkBtb; //  64-entry BTB
+	Bht#(8)		    bht <- mkBht; // 256-entry BHT
+
+    Fifo#(6, IF2ID)    if2idFifo      <-  mkCFFifo;
+    Fifo#(6, ID2RF)    id2rfFifo      <-  mkCFFifo;
+    Fifo#(6, RF2EXE)   rf2exeFifo     <-  mkCFFifo;
+    Fifo#(6, EXE2MEM)  exe2memFifo    <-  mkCFFifo;
+    Fifo#(6, MEM2WB)   mem2wbFifo     <-  mkCFFifo;
+
+    Ehr#(4, Addr) pcReg <- mkEhrU();	// pc, init at start
 
 	// global epoch for redirection from Execute stage
-	Reg#(Bool) exeEpoch <- mkReg(False);
-    Reg#(Bool) decEpoch <- mkReg(False);
-
-	// EHR for redirection
-	Ehr#(2, Maybe#(ExeRedirect)) exeRedirect <- mkEhr(Invalid);
-    Ehr#(2, Maybe#(DecRedirect)) decRedirect <- mkEhr(Invalid);
-
-	// FIFO between two stages
-	Fifo#(2, Fetch2Decode) f2dFifo <- mkCFFifo;
-    Fifo#(2, Decode2RegFetch) d2rFifo <- mkCFFifo;
-    Fifo#(2, RegFetch2Execute) r2eFifo <- mkCFFifo;
-    Fifo#(2, Maybe#(Execute2Memory)) e2mFifo <- mkCFFifo;
-    Fifo#(2, Maybe#(Memory2WriteBack)) m2wFifo <- mkCFFifo;
+	Ehr#(3, Bool) epoch1 <- mkEhr(False);
+	Ehr#(2, Bool) epoch2 <- mkEhr(False);
 
     Bool memReady = iMem.init.done && dMem.init.done;
 
-    Reg#(Bit#(32)) cycle <- mkReg(0);
+	rule split_cycle(True);
+		$display("--------------------------------------");
+	endrule
 
-    rule cycleCounter(csrf.started);
-        cycle <= cycle + 1;
-        $display("Cycle %d -------------------------", cycle);
-    endrule
+	// fetch
+	rule doIF(csrf.started && memReady);
+		iMem.req(MemReq{op:?, addr:pcReg[3], data:?});	
+		Addr ppc = btb.predPc(pcReg[3]);
+		pcReg[3] <= ppc;
+		if2idFifo.enq(
+			IF2ID{
+				pc: pcReg[3], 
+				predPc: ppc, 
+				epoch: epoch2[1]
+				}
+			);
+		$display("Fetch: PC = %x", pcReg[3]);
+	endrule
 
-	rule doFetch(csrf.started);
-		iMem.req(MemReq{op: Ld, addr: pcReg[0], data: ?});
-		Addr predPc = btb.predPc(pcReg[0]);
-        pcReg[0] <= predPc;
+	// decode
+	rule doID(csrf.started && memReady);
+		//
+		let inst <- iMem.resp();
+		let if2id = if2idFifo.first();
+		if2idFifo.deq();
+		//
+		DecodedInst dInst = decode(inst);
+		//
+		id2rfFifo.enq(
+			ID2RF{
+				pc: if2id.pc, 
+				predPc: if2id.predPc, 
+				epoch: if2id.epoch,
+				dInst: dInst
+				}
+			);
+		$display("Decode: PC = %x, inst = %x, expanded = ", if2id.pc, inst, showInst(inst));
+	endrule
 
-        Fetch2Decode f2d = Fetch2Decode{
-            pc: pcReg[0],
-			predPc: predPc,
-			eepoch: exeEpoch,
-            depoch: decEpoch
-        };
+	// register fetch
+	rule doRF(csrf.started && memReady);
+		ID2RF d2r = id2rfFifo.first();
+		DecodedInst dInst = d2r.dInst;
 
-        f2dFifo.enq(f2d);
-        $display("[%d] Inst Fetch: PC = %x", cycle, pcReg[0]);
-    endrule
-	
-    rule doDecode(csrf.started);
-		Fetch2Decode f2d = f2dFifo.first;
-        f2dFifo.deq;
+		// search scoreboard to determine stall
+		if(!(sb.search1(dInst.src1) || sb.search2(dInst.src2))) begin
+			// no stall
+			id2rfFifo.deq();
+			// upate sorceboard
+			sb.insert(dInst.dst);
+			// register read
+			Data rVal1 = rf.rd1(fromMaybe(?, dInst.src1));
+			Data rVal2 = rf.rd2(fromMaybe(?, dInst.src2));
+			Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
 
-        // Even if epoch is wrong, we need to consume the data from memory, or it will queued.
-        let inst <- iMem.resp;
+			rf2exeFifo.enq(
+				RF2EXE{
+					pc: d2r.pc,
+					predPc: d2r.predPc,
+					epoch: d2r.epoch,
+					dInst: d2r.dInst,
+					rVal1: rVal1,
+					rVal2: rVal2,
+					csrVal: csrVal
+				}
+			);
+			$display("Fetch Register: PC = %x, rs1 = %x, rs2 = %x, csr = %x", d2r.pc, rVal1, rVal2, csrVal);
+		end
+		else begin
+			$display("Fetch Register: Stalled: PC = %x", d2r.pc);
+		end
+	endrule
 
-        if (f2d.eepoch == exeEpoch) begin
-            if (f2d.depoch == decEpoch) begin
-                DecodedInst dInst = decode(inst);
-
-                $display("[%d] Decode: PC = %x, inst = %x, expanded = ", cycle, f2d.pc, inst, showInst(inst));
-
-                let predPc = f2d.predPc;
-                if (dInst.iType == Br || dInst.iType == J) begin
-                    let decode_target_pc = f2d.pc + fromMaybe(?, dInst.imm);
-                    let new_pc = dInst.iType == Br ? bht.ppcDP(f2d.pc, decode_target_pc) : decode_target_pc;
-
-                    if (new_pc != f2d.predPc) begin
-                        decRedirect[0] <= tagged Valid DecRedirect {
-                            pc: f2d.pc,
-                            nextPc: new_pc
-                        };
-                        predPc = new_pc;
-                    end
-                end 
-                Decode2RegFetch d2r = Decode2RegFetch {
-                    pc: f2d.pc,
-                    predPc: predPc,
-                    dInst: dInst,
-                    eepoch: f2d.eepoch
-                };
-
-                d2rFifo.enq(d2r);
-
-            end else begin
-                $display("[%d] Decode: PC = %x, Drop due to depoch mismatch", cycle, f2d.pc);
-            end
-        end else begin
-             $display("[%d] Decode: PC = %x, Drop due to eepoch mismatch", cycle, f2d.pc);
-        end
-
-
-    endrule  
-
-    rule doRegFetch(csrf.started);
-
-        Decode2RegFetch d2r = d2rFifo.first;
-        if (d2r.eepoch == exeEpoch) begin
-        
-            // reg read
-            Data rVal1 = rf.rd1(fromMaybe(?, d2r.dInst.src1));
-            Data rVal2 = rf.rd2(fromMaybe(?, d2r.dInst.src2));
-            Data csrVal = csrf.rd(fromMaybe(?, d2r.dInst.csr));
-            // data to enq to FIFO
-            RegFetch2Execute r2e = RegFetch2Execute {
-                pc: d2r.pc,
-                predPc: d2r.predPc,
-                dInst: d2r.dInst,
-                rVal1: rVal1,
-                rVal2: rVal2,
-                csrVal: csrVal,
-                eepoch: d2r.eepoch
-            };
-            
-            // search scoreboard to determine stall
-            if(!sb.search1(d2r.dInst.src1) && !sb.search2(d2r.dInst.src2)) begin
-                $display("[%d] Fetch Reg PC = %x", cycle, d2r.pc);
-                $display("[%d] Fetch Reg PC insert sb = %x", cycle, d2r.dInst.dst);
-                d2rFifo.deq();
-                r2eFifo.enq(r2e);
-                sb.insert(d2r.dInst.dst);
-            end
-            else begin
-                $display("[%d] Fetch Reg Stalled: PC = %x", cycle, d2r.pc);
-            end
-        end else begin
-            d2rFifo.deq();
-            $display("[%d] RegFetch: PC = %x, Drop due to eepoch mismatch", cycle, d2r.pc);
-        end
-
-    endrule
-
-
-	// ex, mem, wb stage
-	rule doExecute(csrf.started);
-		r2eFifo.deq;
-		let r2e = r2eFifo.first;
-
-        $display("[%d] Execute: PC = %x", cycle, r2e.pc);
-
-		if(r2e.eepoch != exeEpoch) begin
-			e2mFifo.enq(tagged Invalid);
-			$display("[%d] Execute: Kill instruction", cycle);
-		end else begin
+	// execute
+	rule doEXE(csrf.started && memReady);
+		//
+		let rf2exe = rf2exeFifo.first();
+		rf2exeFifo.deq();
+		//
+		if (rf2exe.epoch == epoch2[0]) begin
 			// execute
-			ExecInst eInst = exec(r2e.dInst, r2e.rVal1, r2e.rVal2, r2e.pc, r2e.predPc, r2e.csrVal);
-
-            if(eInst.mispredict) begin //no btb update?
-                $display("[%d] Execute finds misprediction: PC = %x", cycle, r2e.pc);
-                exeRedirect[0] <= Valid (ExeRedirect {
-                    pc: r2e.pc,
-                    nextPc: eInst.addr // Hint for discussion 1: check this line
-                });
+			ExecInst eInst = exec(
+				rf2exe.dInst, rf2exe.rVal1 , rf2exe.rVal2, 
+				rf2exe.pc   , rf2exe.predPc, rf2exe.csrVal);
+			$display("Execute: PC = %x", rf2exe.pc);
+			//
+			if(eInst.iType == Unsupported) begin
+				$fwrite(stderr, "Execute: ERROR: Unsupported instruction at PC = %x. Exiting\n", rf2exe.pc);
+				$finish;
+			end
+			// handle new mispredict
+			if (eInst.mispredict) begin
+                pcReg[2] <= eInst.addr;
+                epoch2[0] <= !epoch2[0];
+				if (eInst.iType == J || eInst.iType == Jr || eInst.iType == Br) begin
+					btb.update(rf2exe.pc, eInst.addr);
+				end
+				$display("Execute: Mispredict, redirected to PC = %x", eInst.addr);
             end
+			//
+			exe2memFifo.enq(
+				EXE2MEM{
+					pc: rf2exe.pc, 
+					eInst: Valid(eInst)
+					}
+				);
+		end else begin
+			// handle old mis-predict
+			// kill wrong-path inst, just deq sb
+			// sb.remove();
+			// mispredic have WB stage too!
+			$display("Execute: skip mis-predict instruction");
+			//
+			exe2memFifo.enq(
+				EXE2MEM{
+					pc: rf2exe.pc, 
+					eInst: Invalid
+					}
+				);
+		end
+	endrule
 
-            if (eInst.iType == Br) begin
-                bht.update(r2e.pc, eInst.brTaken);
-            end
-
-
-            // check unsupported instruction at commit time. Exiting
-            if(eInst.iType == Unsupported) begin
-                $fwrite(stderr, "[%d] ERROR: Executing unsupported instruction at pc: %x. Exiting\n", cycle, r2e.pc);
-                $finish;
-            end
-            Execute2Memory e2m = Execute2Memory {
-                pc: r2e.pc,
-                predPc: r2e.predPc,
-                dInst: r2e.dInst,
-                rVal1: r2e.rVal1,
-                rVal2: r2e.rVal2,
-                csrVal: r2e.csrVal,
-                eInst:eInst,
-                eepoch: r2e.eepoch
-            };
-            e2mFifo.enq(tagged Valid e2m);
-        end
-
-    endrule
-
-    rule doMemory(csrf.started);
-
-        let e2m_maybe = e2mFifo.first;
-        e2mFifo.deq();
-
-        if (e2m_maybe matches tagged Valid .e2m) begin
-            let eInst = e2m.eInst;
-            $display("[%d] Memory: PC = %x", cycle, e2m.pc);
-
-            // memory
+	// data memory
+	rule doMEM(csrf.started && memReady);
+		//
+		let exe2mem = exe2memFifo.first();
+		exe2memFifo.deq();
+		// memory
+		if (isValid(exe2mem.eInst)) begin
+            let eInst = fromMaybe(?, exe2mem.eInst);
             if(eInst.iType == Ld) begin
                 dMem.req(MemReq{op: Ld, addr: eInst.addr, data: ?});
             end else if(eInst.iType == St) begin
                 dMem.req(MemReq{op: St, addr: eInst.addr, data: eInst.data});
             end
-
-            Memory2WriteBack m2w = Memory2WriteBack {
-                pc: e2m.pc,
-                predPc: e2m.predPc,
-                dInst: e2m.dInst,
-                rVal1: e2m.rVal1,
-                rVal2: e2m.rVal2,
-                csrVal: e2m.csrVal,
-                eInst: e2m.eInst,
-                eepoch: e2m.eepoch
-            };
-            m2wFifo.enq(tagged Valid m2w);
+            $display("Memory: PC = %x", exe2mem.pc);
+			//
+			mem2wbFifo.enq(
+				MEM2WB{
+					pc: exe2mem.pc, 
+					eInst: Valid(eInst)
+					}
+				);
         end else begin
-            $display("[%d] Memory Invalid", cycle);
-            m2wFifo.enq(tagged Invalid);
+			//
+			mem2wbFifo.enq(
+				MEM2WB{
+					pc: exe2mem.pc, 
+					eInst: Invalid
+					}
+				);
+            $display("Memory: skip mis-predict. PC = %x", exe2mem.pc);
         end
-    endrule    
+	endrule
 
-    rule doWriteBack(csrf.started);
-        let m2w_maybe = m2wFifo.first;
-        m2wFifo.deq();
-
-        if (m2w_maybe matches tagged Valid .m2w) begin
-            let eInst = m2w.eInst;
-
-            if(eInst.iType == Ld) begin
-                eInst.data <- dMem.resp;
+	// write back
+	rule doWB(csrf.started && memReady);
+		//
+		let mem2wb = mem2wbFifo.first();
+		mem2wbFifo.deq();
+		// 
+		if (isValid(mem2wb.eInst)) begin
+            let eInst = fromMaybe(?, mem2wb.eInst);
+			//
+			if(eInst.iType == Ld) begin
+                eInst.data <- dMem.resp();
             end
-
-            // write back to reg file
-            if(isValid(eInst.dst)) begin
-                rf.wr(fromMaybe(?, eInst.dst), eInst.data);
-            end
-            csrf.wr(eInst.iType == Csrw ? eInst.csr : Invalid, eInst.data);
+			// write back to reg file
+			if(isValid(eInst.dst)) begin
+				rf.wr(fromMaybe(?, eInst.dst), eInst.data);
+			end
+			csrf.wr(eInst.iType == Csrw ? eInst.csr : Invalid, eInst.data);
+			
+            $display("WriteBack: PC = %x", mem2wb.pc);
+        end else begin
+            $display("WriteBack: mis-predict. PC = %x", mem2wb.pc);
         end
-
-        // remove from scoreboard
-        $display("[%d] Remove SB", cycle);
-        sb.remove;
-        
-    endrule  
-
-    (* fire_when_enabled *)
-	(* no_implicit_conditions *)
-	rule cononicalizeRedirect(csrf.started);
-		if(exeRedirect[1] matches tagged Valid .r) begin
-			// fix mispred
-			pcReg[1] <= r.nextPc;
-			exeEpoch <= !exeEpoch; // flip epoch
-			btb.update(r.pc, r.nextPc); // train BTB
-			$display("[%d] Fetch: Mispredict, redirected by Execute", cycle);
-        end else if(decRedirect[1] matches tagged Valid .r) begin
-            pcReg[1] <= r.nextPc;
-			decEpoch <= !decEpoch; // flip epoch
-			btb.update(r.pc, r.nextPc); // train BTB
-			$display("[%d] Fetch: Mispredict, redirected by Decode", cycle);
-        end
-		// reset EHR
-		exeRedirect[1] <= Invalid;
-        decRedirect[1] <= Invalid;
+		// 
+		sb.remove();
 	endrule
 
     method ActionValue#(CpuToHostData) cpuToHost if(csrf.started);
@@ -343,7 +272,6 @@ module mkProc(Proc);
 	$display("Start cpu");
         csrf.start(0); // only 1 core, id = 0
         pcReg[0] <= startpc;
-        cycle <= 0;
     endmethod
 
 	interface iMemInit = iMem.init;

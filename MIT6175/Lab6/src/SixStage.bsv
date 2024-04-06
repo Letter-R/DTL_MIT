@@ -24,28 +24,12 @@ import Btb::*;
 import Scoreboard::*;
 import FPGAMemory::*;
 
-// Data structure for Fetch to Execute stage
-typedef struct {
-    Addr pc;
-    Addr predPc;
-    DecodedInst dInst;
-    Data rVal1;
-    Data rVal2;
-    Data csrVal;
-    Bool epoch;
-} Fetch2Execute deriving (Bits, Eq);
-
-
-// IF2ID2RF2EXE2MEM2WB
-
-// m1
 typedef struct {
     Addr pc;
     Addr predPc;
     Bool epoch;
 } IF2ID deriving (Bits, Eq);
 
-// m2
 typedef struct {
     Addr pc;
     Addr predPc;
@@ -53,7 +37,6 @@ typedef struct {
 	DecodedInst dInst;
 } ID2RF deriving (Bits, Eq);
 
-// m3
 typedef struct {
     Addr pc;
     Addr predPc;
