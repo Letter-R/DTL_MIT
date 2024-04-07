@@ -28,20 +28,23 @@ import Bht::*;
 typedef struct {
     Addr pc;
     Addr predPc;
-    Bool epoch;
+	Bool epoch1;
+    Bool epoch2;
+	Bool epoch3;
 } IF2ID deriving (Bits, Eq);
 
 typedef struct {
     Addr pc;
     Addr predPc;
-    Bool epoch;
+	Bool epoch1;
+    Bool epoch2;
 	DecodedInst dInst;
 } ID2RF deriving (Bits, Eq);
 
 typedef struct {
     Addr pc;
     Addr predPc;
-    Bool epoch;
+    Bool epoch1;
 	DecodedInst dInst;
 	Data rVal1;
 	Data rVal2;
@@ -76,9 +79,10 @@ module mkProc(Proc);
 
     Ehr#(4, Addr) pcReg <- mkEhrU();	// pc, init at start
 
-	// global epoch for redirection from Execute stage
-	Ehr#(3, Bool) epoch1 <- mkEhr(False);
+	// global epoch2 for redirection from Execute stage
+	Ehr#(2, Bool) epoch1 <- mkEhr(False);
 	Ehr#(2, Bool) epoch2 <- mkEhr(False);
+	Ehr#(2, Bool) epoch3 <- mkEhr(False);
 
     Bool memReady = iMem.init.done && dMem.init.done;
 
@@ -95,7 +99,9 @@ module mkProc(Proc);
 			IF2ID{
 				pc: pcReg[3], 
 				predPc: ppc, 
-				epoch: epoch2[1]
+				epoch1: epoch1[1],
+				epoch2: epoch2[1],
+				epoch3: epoch3[1]
 				}
 			);
 		$display("Fetch: PC = %x", pcReg[3]);
@@ -107,52 +113,94 @@ module mkProc(Proc);
 		let inst <- iMem.resp();
 		let if2id = if2idFifo.first();
 		if2idFifo.deq();
-		//
-		DecodedInst dInst = decode(inst);
-		//
-		id2rfFifo.enq(
-			ID2RF{
-				pc: if2id.pc, 
-				predPc: if2id.predPc, 
-				epoch: if2id.epoch,
-				dInst: dInst
-				}
-			);
-		$display("Decode: PC = %x, inst = %x, expanded = ", if2id.pc, inst, showInst(inst));
+
+		// should fire on valid inst 
+		if ((if2id.epoch3 == epoch3[0]) && (if2id.epoch2 == epoch2[0]) && (if2id.epoch1 == epoch1[0])) begin
+			//
+			DecodedInst dInst = decode(inst);
+			let ppc = if2id.predPc;
+			// if is JAL, jump
+			if (dInst.iType == J) begin
+				Addr tmp_ppc = if2id.pc+fromMaybe(?, dInst.imm);
+				if (ppc != tmp_ppc) begin
+					pcReg[2] <= tmp_ppc;
+					ppc = tmp_ppc;
+					epoch3[0] <= !epoch3[0];
+					$display("Decode: next pc Mispredict, redirected to PC = %x", tmp_ppc);
+				end
+			// if is Branch, predict
+			end else if (dInst.iType == Br) begin
+				ppc = bht.ppcDP(ppc, if2id.pc+fromMaybe(?, dInst.imm));
+			end
+			//
+			id2rfFifo.enq(
+				ID2RF{
+					pc: if2id.pc, 
+					predPc: ppc, 
+					epoch1: if2id.epoch1,
+					epoch2: if2id.epoch2,
+					dInst: dInst
+					}
+				);
+			$display("Decode: PC = %x, inst = %x, expanded = ", if2id.pc, inst, showInst(inst));
+		end
+		else begin
+			$display("Decode: drop at PC = %x", if2id.pc);
+		end
+
 	endrule
 
 	// register fetch
 	rule doRF(csrf.started && memReady);
-		ID2RF d2r = id2rfFifo.first();
-		DecodedInst dInst = d2r.dInst;
-
-		// search scoreboard to determine stall
-		if(!(sb.search1(dInst.src1) || sb.search2(dInst.src2))) begin
-			// no stall
-			id2rfFifo.deq();
-			// upate sorceboard
-			sb.insert(dInst.dst);
-			// register read
-			Data rVal1 = rf.rd1(fromMaybe(?, dInst.src1));
-			Data rVal2 = rf.rd2(fromMaybe(?, dInst.src2));
-			Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
-
-			rf2exeFifo.enq(
-				RF2EXE{
-					pc: d2r.pc,
-					predPc: d2r.predPc,
-					epoch: d2r.epoch,
-					dInst: d2r.dInst,
-					rVal1: rVal1,
-					rVal2: rVal2,
-					csrVal: csrVal
-				}
-			);
-			$display("Fetch Register: PC = %x, rs1 = %x, rs2 = %x, csr = %x", d2r.pc, rVal1, rVal2, csrVal);
+		ID2RF id2rf = id2rfFifo.first();
+		DecodedInst dInst = id2rf.dInst;
+		// should fire on valid inst 
+		if ((id2rf.epoch1 == epoch1[0]) && (id2rf.epoch2 == epoch2[0])) begin
+			// search scoreboard to determine stall
+			if(!(sb.search1(dInst.src1) || sb.search2(dInst.src2))) begin
+				// no stall
+				id2rfFifo.deq();
+				// upate sorceboard
+				sb.insert(dInst.dst);
+				// register read
+				Data rVal1  = rf.rd1(fromMaybe(?, dInst.src1));
+				Data rVal2  = rf.rd2(fromMaybe(?, dInst.src2));
+				Data csrVal = csrf.rd(fromMaybe(?, dInst.csr));
+				//
+				let ppc = id2rf.predPc;
+				// if is JALR, jump
+				if (dInst.iType == Jr) begin
+					Addr tmp_ppc = {truncateLSB(rVal1 + fromMaybe(?, dInst.imm)), 1'b0};
+					if (ppc != tmp_ppc) begin
+						pcReg[1] <= tmp_ppc;
+						ppc = tmp_ppc;
+						epoch2[0] <= !epoch2[0];
+						$display("Fetch Register: next pc Mispredict, redirected to PC = %x", tmp_ppc);
+					end
+				end
+				//
+				rf2exeFifo.enq(
+					RF2EXE{
+						pc    : id2rf.pc,
+						predPc: ppc,
+						epoch1: id2rf.epoch1,
+						dInst : id2rf.dInst,
+						rVal1 : rVal1,
+						rVal2 : rVal2,
+						csrVal: csrVal
+					}
+				);
+				$display("Fetch Register: PC = %x, rs1 = %x, rs2 = %x, csr = %x", id2rf.pc, rVal1, rVal2, csrVal);
+			end
+			else begin
+				$display("Fetch Register: Stalled: PC = %x", id2rf.pc);
+			end
 		end
 		else begin
-			$display("Fetch Register: Stalled: PC = %x", d2r.pc);
+			id2rfFifo.deq();
+			$display("Fetch Register: drop at PC = %x", id2rf.pc);
 		end
+
 	endrule
 
 	// execute
@@ -161,7 +209,7 @@ module mkProc(Proc);
 		let rf2exe = rf2exeFifo.first();
 		rf2exeFifo.deq();
 		//
-		if (rf2exe.epoch == epoch2[0]) begin
+		if (rf2exe.epoch1 == epoch1[0]) begin
 			// execute
 			ExecInst eInst = exec(
 				rf2exe.dInst, rf2exe.rVal1 , rf2exe.rVal2, 
@@ -174,10 +222,11 @@ module mkProc(Proc);
 			end
 			// handle new mispredict
 			if (eInst.mispredict) begin
-                pcReg[2] <= eInst.addr;
-                epoch2[0] <= !epoch2[0];
+                pcReg[0] <= eInst.addr;
+                epoch1[0] <= !epoch1[0];
 				if (eInst.iType == J || eInst.iType == Jr || eInst.iType == Br) begin
 					btb.update(rf2exe.pc, eInst.addr);
+					bht.update(rf2exe.pc, eInst.brTaken);
 				end
 				$display("Execute: Mispredict, redirected to PC = %x", eInst.addr);
             end

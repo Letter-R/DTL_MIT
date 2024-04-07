@@ -91,5 +91,48 @@ epoch2 will update in EXE stage
  JAL >> !epoch1  JALR >> !epoch1   Branch >> !epoch2        BTB write ppc[3]
      update predict next Addr     |   check predic right  |   read next ppc
 
+maybe
+
+WB < MEM < EXE < RF < ID < IF
 
 
+
+
+WB : sb.remove                // {remove, search, insert} < clear
+     may poison to skip
+     dMem.deq()
+
+MEM: may poison to skip
+     dMem.enq()
+
+EXE:       
+     read epoch1[0]           // if this pc is mis-predict, poison
+     // if next pc is wrong
+          flip epoch1[0]          
+          write ppc[0]        
+     update BTB and BHT
+
+RF : read          epoch2[0]  // if this pc is mis-predict, drop
+     // if next pc is wrong, flip
+          flip epoch2[0]    
+          write ppc[1]      
+
+     sb.search                // stall
+     sb.insert
+
+ID : read          epoch3[0]  // if this pc is mis-predict, drop
+     // if next pc is wrong, flip
+     write epoch3[0]          
+     Bht predict              // pipeline to next stage
+     write ppc[2]             // make sure wrong inst not change ppc
+     iMem.resp()
+
+IF : read ppc[3]              // read the  next ppc
+     read epoch1[1]
+     read epoch2[1]
+     read epoch3[1]
+
+     iMem.enq()
+     write ppc[3]             // predict next pc
+
+failed
