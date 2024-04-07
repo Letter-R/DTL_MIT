@@ -6,7 +6,8 @@ asm_tests=(
 	# add addi
 	# and andi
 	# auipc
-	# beq bge bgeu blt bltu bne
+
+	beq bge bgeu blt bltu bne
 	# j jal jalr
 	# lw
 	# lui

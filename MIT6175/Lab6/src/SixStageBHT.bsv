@@ -92,19 +92,19 @@ module mkProc(Proc);
 
 	// fetch
 	rule doIF(csrf.started && memReady);
-		iMem.req(MemReq{op:?, addr:pcReg[3], data:?});	
-		Addr ppc = btb.predPc(pcReg[3]);
-		pcReg[3] <= ppc;
+		iMem.req(MemReq{op:?, addr:pcReg[0], data:?});	
+		Addr ppc = btb.predPc(pcReg[0]);
+		pcReg[0] <= ppc;
 		if2idFifo.enq(
 			IF2ID{
-				pc: pcReg[3], 
+				pc: pcReg[0], 
 				predPc: ppc, 
-				epoch1: epoch1[1],
-				epoch2: epoch2[1],
-				epoch3: epoch3[1]
+				epoch1: epoch1[0],
+				epoch2: epoch2[0],
+				epoch3: epoch3[0]
 				}
 			);
-		$display("Fetch: PC = %x", pcReg[3]);
+		$display("Fetch: PC = %x", pcReg[0]);
 	endrule
 
 	// decode
@@ -115,22 +115,34 @@ module mkProc(Proc);
 		if2idFifo.deq();
 
 		// should fire on valid inst 
-		if ((if2id.epoch3 == epoch3[0]) && (if2id.epoch2 == epoch2[0]) && (if2id.epoch1 == epoch1[0])) begin
+		if ((if2id.epoch3 == epoch3[1]) && (if2id.epoch2 == epoch2[1]) && (if2id.epoch1 == epoch1[1])) begin
 			//
 			DecodedInst dInst = decode(inst);
 			let ppc = if2id.predPc;
-			// if is JAL, jump
-			if (dInst.iType == J) begin
-				Addr tmp_ppc = if2id.pc+fromMaybe(?, dInst.imm);
-				if (ppc != tmp_ppc) begin
-					pcReg[2] <= tmp_ppc;
-					ppc = tmp_ppc;
-					epoch3[0] <= !epoch3[0];
-					$display("Decode: next pc Mispredict, redirected to PC = %x", tmp_ppc);
+			// // if is JAL, jump
+			// if (dInst.iType == J) begin
+			// 	Addr tmp_ppc = if2id.pc+fromMaybe(?, dInst.imm);
+			// 	if (ppc != tmp_ppc) begin
+			// 		pcReg[1] <= tmp_ppc;
+			// 		ppc = tmp_ppc;
+			// 		epoch3[1] <= !epoch3[1];
+			// 		$display("Decode: next pc Mispredict, redirected to PC = %x", tmp_ppc);
+			// 	end
+			// // if is Branch, predict
+			// end else if (dInst.iType == Br) begin
+			// 	ppc = bht.ppcDP(ppc, if2id.pc+fromMaybe(?, dInst.imm));
+			// end
+			//
+			// branch should change epoch too
+			let jump_addr = if2id.pc+fromMaybe(?, dInst.imm);
+			if ((dInst.iType == J) || (dInst.iType == Br)) begin
+				let bht_ppc =  bht.ppcDP(ppc, jump_addr);
+				if (ppc != bht_ppc) begin
+					ppc = bht_ppc;
+					pcReg[1] <= bht_ppc;
+					epoch3[1] <= !epoch3[1];
+					$display("Decode: redirected to PC = %x", bht_ppc);
 				end
-			// if is Branch, predict
-			end else if (dInst.iType == Br) begin
-				ppc = bht.ppcDP(ppc, if2id.pc+fromMaybe(?, dInst.imm));
 			end
 			//
 			id2rfFifo.enq(
@@ -155,7 +167,7 @@ module mkProc(Proc);
 		ID2RF id2rf = id2rfFifo.first();
 		DecodedInst dInst = id2rf.dInst;
 		// should fire on valid inst 
-		if ((id2rf.epoch1 == epoch1[0]) && (id2rf.epoch2 == epoch2[0])) begin
+		if ((id2rf.epoch2 == epoch2[1]) && (id2rf.epoch1 == epoch1[1])) begin
 			// search scoreboard to determine stall
 			if(!(sb.search1(dInst.src1) || sb.search2(dInst.src2))) begin
 				// no stall
@@ -172,9 +184,9 @@ module mkProc(Proc);
 				if (dInst.iType == Jr) begin
 					Addr tmp_ppc = {truncateLSB(rVal1 + fromMaybe(?, dInst.imm)), 1'b0};
 					if (ppc != tmp_ppc) begin
-						pcReg[1] <= tmp_ppc;
+						pcReg[2] <= tmp_ppc;
 						ppc = tmp_ppc;
-						epoch2[0] <= !epoch2[0];
+						epoch2[1] <= !epoch2[1];
 						$display("Fetch Register: next pc Mispredict, redirected to PC = %x", tmp_ppc);
 					end
 				end
@@ -209,7 +221,7 @@ module mkProc(Proc);
 		let rf2exe = rf2exeFifo.first();
 		rf2exeFifo.deq();
 		//
-		if (rf2exe.epoch1 == epoch1[0]) begin
+		if (rf2exe.epoch1 == epoch1[1]) begin
 			// execute
 			ExecInst eInst = exec(
 				rf2exe.dInst, rf2exe.rVal1 , rf2exe.rVal2, 
@@ -222,8 +234,8 @@ module mkProc(Proc);
 			end
 			// handle new mispredict
 			if (eInst.mispredict) begin
-                pcReg[0] <= eInst.addr;
-                epoch1[0] <= !epoch1[0];
+                pcReg[3] <= eInst.addr;
+                epoch1[1] <= !epoch1[1];
 				if (eInst.iType == J || eInst.iType == Jr || eInst.iType == Br) begin
 					btb.update(rf2exe.pc, eInst.addr);
 					bht.update(rf2exe.pc, eInst.brTaken);
