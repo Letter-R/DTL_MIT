@@ -86,8 +86,11 @@ module mkProc(Proc);
 
     Bool memReady = iMem.init.done && dMem.init.done;
 
+	Reg#(Int#(64)) cycles <- mkReg(0);
+
 	rule split_cycle(True);
-		$display("--------------------------------------");
+		cycles <= cycles + 1;
+		$display("--%d------------------------------------", cycles);
 	endrule
 
 	// fetch
@@ -115,7 +118,7 @@ module mkProc(Proc);
 		if2idFifo.deq();
 
 		// should fire on valid inst 
-		if ((if2id.epoch3 == epoch3[1]) && (if2id.epoch2 == epoch2[1]) && (if2id.epoch1 == epoch1[1])) begin
+		if ((if2id.epoch3 == epoch3[0]) && (if2id.epoch2 == epoch2[0]) && (if2id.epoch1 == epoch1[0])) begin
 			//
 			DecodedInst dInst = decode(inst);
 			let ppc = if2id.predPc;
@@ -134,13 +137,16 @@ module mkProc(Proc);
 			// end
 			//
 			// branch should change epoch too
+			// it change the next ppc
+			// this cause addtion cycles
 			let jump_addr = if2id.pc+fromMaybe(?, dInst.imm);
 			if ((dInst.iType == J) || (dInst.iType == Br)) begin
+			// if ((dInst.iType == J)) begin
 				let bht_ppc =  bht.ppcDP(ppc, jump_addr);
 				if (ppc != bht_ppc) begin
 					ppc = bht_ppc;
 					pcReg[1] <= bht_ppc;
-					epoch3[1] <= !epoch3[1];
+					epoch3[0] <= !epoch3[0];
 					$display("Decode: redirected to PC = %x", bht_ppc);
 				end
 			end
@@ -167,7 +173,7 @@ module mkProc(Proc);
 		ID2RF id2rf = id2rfFifo.first();
 		DecodedInst dInst = id2rf.dInst;
 		// should fire on valid inst 
-		if ((id2rf.epoch2 == epoch2[1]) && (id2rf.epoch1 == epoch1[1])) begin
+		if ((id2rf.epoch2 == epoch2[0]) && (id2rf.epoch1 == epoch1[0])) begin
 			// search scoreboard to determine stall
 			if(!(sb.search1(dInst.src1) || sb.search2(dInst.src2))) begin
 				// no stall
@@ -186,7 +192,7 @@ module mkProc(Proc);
 					if (ppc != tmp_ppc) begin
 						pcReg[2] <= tmp_ppc;
 						ppc = tmp_ppc;
-						epoch2[1] <= !epoch2[1];
+						epoch2[0] <= !epoch2[0];
 						$display("Fetch Register: next pc Mispredict, redirected to PC = %x", tmp_ppc);
 					end
 				end
@@ -221,7 +227,7 @@ module mkProc(Proc);
 		let rf2exe = rf2exeFifo.first();
 		rf2exeFifo.deq();
 		//
-		if (rf2exe.epoch1 == epoch1[1]) begin
+		if (rf2exe.epoch1 == epoch1[0]) begin
 			// execute
 			ExecInst eInst = exec(
 				rf2exe.dInst, rf2exe.rVal1 , rf2exe.rVal2, 
@@ -235,7 +241,7 @@ module mkProc(Proc);
 			// handle new mispredict
 			if (eInst.mispredict) begin
                 pcReg[3] <= eInst.addr;
-                epoch1[1] <= !epoch1[1];
+                epoch1[0] <= !epoch1[0];
 				if (eInst.iType == J || eInst.iType == Jr || eInst.iType == Br) begin
 					btb.update(rf2exe.pc, eInst.addr);
 					bht.update(rf2exe.pc, eInst.brTaken);

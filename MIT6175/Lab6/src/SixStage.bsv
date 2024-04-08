@@ -78,9 +78,13 @@ module mkProc(Proc);
 
     Bool memReady = iMem.init.done && dMem.init.done;
 
+	Reg#(Int#(64)) cycles <- mkReg(0);
+
 	rule split_cycle(True);
-		$display("--------------------------------------");
+		cycles <= cycles + 1;
+		$display("--%d------------------------------------", cycles);
 	endrule
+
 
 	// fetch
 	rule doIF(csrf.started && memReady);

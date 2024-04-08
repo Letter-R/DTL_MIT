@@ -13,7 +13,7 @@ typedef Bit#(indexSize) BhtIndex#(numeric type indexSize);
 // BHT#(16)
 module mkBht(Bht#(indexSize)) provisos( Add#(indexSize,a__,32));
     // 2^16 Reg
-    Vector#(TExp#(indexSize), Reg#(Bit#(2))) bhtArr <- replicateM(mkReg(2'b01));
+    Vector#(TExp#(indexSize), Reg#(Bit#(2))) bhtArr <- replicateM(mkReg(2'b11));
     // Bit#(16) [17:2]
     function BhtIndex#(indexSize) getBhtIndex(Addr pc) = truncate(pc >> 2);
     function Addr computeTarget(Addr pc, Addr targetPC, Bool taken) = taken ? targetPC : pc + 4;  
@@ -40,7 +40,8 @@ module mkBht(Bht#(indexSize)) provisos( Add#(indexSize,a__,32));
     method Action update(Addr pc, Bool taken);
         BhtIndex#(indexSize) index = getBhtIndex(pc);
         let dpBits = getBhtEntry(index);
-        bhtArr[index] <= newDpBits(dpBits,taken); 
+        let tmp = newDpBits(dpBits,taken); 
+        bhtArr[index] <= tmp;
     endmethod
 endmodule
 

@@ -136,3 +136,39 @@ IF : read ppc[3]              // read the  next ppc
      write ppc[3]             // predict next pc
 
 failed
+
+
+Q7
+bpred_bht, sixstage is  5178 1007, IPC=0.194
+    sixstagebht(01) is  2895 1009, IPC=0.349
+    sixstagebht(11) is  2592 1007, IPC=0.349
+
+Q8
+bpred_j, sixstage is  2224 1803
+  sixstagebht(01) is  2567 1805  
+  sixstagebht(11) is  3513 1803
+
+bpred_j_noloop, sixstage is 235 34
+         sixstagebht(01) is 140 36
+         sixstagebht(11) is 71  34
+
+Q9
+Benchmark median                      set bht init to 2'b11       delete Br in ID stage
+Cycles = 15649          -->12348          -->10403                  -->9941
+Insts  = 4243
+
+Benchmark multiply
+Cycles = 39306          -->43232          -->36579                  -->35578
+Insts  = 20893
+
+Benchmark qsort
+Cycles = 354693          -->345425        -->289424                 -->282482
+Insts  = 123496 
+
+Benchmark tower
+Cycles = 7173            -->6880          -->6333                   -->6643
+Insts  = 4168
+
+Benchmark vvadd
+Cycles = 3637            -->5112          -->3618                  -->3624
+Insts  = 2408
