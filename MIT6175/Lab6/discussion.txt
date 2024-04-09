@@ -172,3 +172,10 @@ Insts  = 4168
 Benchmark vvadd
 Cycles = 3637            -->5112          -->3618                  -->3624
 Insts  = 2408
+
+
+E6
+RAS
+730>>584
+283
+
