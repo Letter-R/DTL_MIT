@@ -30,9 +30,12 @@ function Bit#(TMul#(wordSize,numWords)) replicateWord( Bit#(wordSize) word ) pro
     return x;
 endfunction
 
+
+
 function WideMemReq toWideMemReq( MemReq req );
-    Bit#(CacheLineWords) write_en = 0;
-    CacheWordSelect wordsel = truncate( req.addr >> 2 );
+    Bit#(CacheLineWords) write_en = 0;              // read default
+    CacheWordSelect wordsel = truncate( req.addr >> 2 );    // 
+    // set byte_en, which 
     if( req.op == St ) begin
         write_en = 1 << wordsel;
     end
@@ -49,13 +52,39 @@ function WideMemReq toWideMemReq( MemReq req );
             };
 endfunction
 
+
+// typedef enum{Ld, St} MemOp deriving(Eq, Bits, FShow);
+// typedef struct{
+//     MemOp op;
+//     Addr  addr;  // Bit#(32)
+//     Data  data;  // Bit#(32)
+// } MemReq deriving(Eq, Bits, FShow);
+//
+// typedef struct {
+//     Bool        write;
+//     Bit#(64)    byteen;
+//     Bit#(24)    address;
+//     Bit#(512)   data;
+// } DDR3_Req deriving (Bits, Eq);
+//
+// one cache has 8row * 16 * word(4 bit) = 512bit
+// riscv addr is 32 bit, 2^32 bits
+// cache addr is 24 bit, 2^24 times 2^9 (512)bit 
 function DDR3_Req toDDR3Req( MemReq req );
     Bool write = (req.op == St);
+    // index of word(4 bit) of 512
+    // Bit#( TLog#(CacheLineWords) ) CacheWordSelect
+    // Bit#(4), index of word(4 bit) in a cache row
     CacheWordSelect wordSelect = truncate(req.addr >> 2);
+    // mask of word(4 bit) index
+    // Bit#(64), each bit for a Byte
+    // Bit#(4) is 0-15
     DDR3ByteEn byteen = wordEnToByteEn( 1 << wordSelect );
 	if( req.op == Ld ) begin
 		byteen = 0;
 	end
+    // req.addr >> valueOf(TLog#(DDR3DataBytes))
+    // aligen ddr3Bytes, index of ddr3Bytes Bit#(512)
     DDR3Addr addr = truncate( req.addr >> valueOf(TLog#(DDR3DataBytes)) );
     DDR3Data data = replicateWord(req.data);
     return DDR3_Req {

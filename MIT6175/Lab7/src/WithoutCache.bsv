@@ -5,8 +5,6 @@ import ProcTypes::*;
 import MemTypes::*;
 import MemInit::*;
 import RFile::*;
-import IMemory::*;
-import DMemory::*;
 import Decode::*;
 import Exec::*;
 import CsrFile::*;
@@ -15,8 +13,13 @@ import Ehr::*;
 import Btb::*;
 import Scoreboard::*;
 import FPGAMemory::*;
-import Bht::*;
 import Ras::*;
+import Cache::*;
+import MemTypes::*;
+import CacheTypes::*;
+import Vector::*;
+import Bht::*;
+import MemUtil::*;
 
 typedef struct {
     Addr pc;
@@ -54,12 +57,21 @@ typedef struct {
     Maybe#(ExecInst) eInst;
 } MEM2WB deriving (Bits, Eq);
 
-(* synthesize *)
-module mkProc(Proc);
+
+//    Fifo#(2, DDR3_Req)  ddr3ReqFifo <- mkCFFifo();
+//    Fifo#(2, DDR3_Resp) ddr3RespFifo <- mkCFFifo();
+
+//    DDR3_Client ddrclient = toGPClient( ddr3ReqFifo, ddr3RespFifo );
+//    mkSimMem(ddrclient);
+
+//    Proc m <- mkProc(ddr3ReqFifo,ddr3RespFifo);
+
+// (* synthesize *)
+module mkProc#(Fifo#(2, DDR3_Req)  ddr3ReqFifo, Fifo#(2, DDR3_Resp) ddr3RespFifo)(Proc);
     RFile            rf <- mkRFile;
 	Scoreboard#(6)   sb <- mkCFScoreboard;
-	FPGAMemory     iMem <- mkFPGAMemory;
-    FPGAMemory     dMem <- mkFPGAMemory;
+	// FPGAMemory     iMem <- mkFPGAMemory;
+    // FPGAMemory     dMem <- mkFPGAMemory;
     CsrFile        csrf <- mkCsrFile;
     Btb#(6)         btb <- mkBtb; //  64-entry BTB
 	Bht#(8)		    bht <- mkBht; // 256-entry BHT
@@ -78,18 +90,39 @@ module mkProc(Proc);
 	Ehr#(2, Bool) epoch2 <- mkEhr(False);
 	Ehr#(2, Bool) epoch3 <- mkEhr(False);
 
-    Bool memReady = iMem.init.done && dMem.init.done;
+	// wrap DDR3 to WideMem interface
+    WideMem           wideMemWrapper <- mkWideMemFromDDR3( ddr3ReqFifo, ddr3RespFifo );
+	// split WideMem interface to two (use it in a multiplexed way) 
+	// This spliter only take action after reset (i.e. memReady && csrf.started)
+	// otherwise the guard may fail, and we get garbage DDR3 resp
+    Vector#(2, WideMem)     wideMems <- mkSplitWideMem(csrf.started, wideMemWrapper );
+	// Instruction cache should use wideMems[1]
+	// Data cache should use wideMems[0]
+
+	// some garbage may get into ddr3RespFifo during soft reset
+	// this rule drains all such garbage
+    rule drainMemResponses( !csrf.started );
+        ddr3RespFifo.deq;
+    endrule
+
+
+    Cache iMem <- mkTranslator(wideMems[1]);
+    Cache dMem <- mkTranslator(wideMems[0]);
+
+
 
 	Reg#(Int#(64)) cycles <- mkReg(0);
-
-	rule split_cycle(True);
+	rule split_cycle(csrf.started);
 		cycles <= cycles + 1;
 		$display("--%d------------------------------------", cycles);
+        // if (cycles == 150000) begin
+        //     $finish;
+        // end
 	endrule
 
 	// fetch
-	rule doIF(csrf.started && memReady);
-		iMem.req(MemReq{op:?, addr:pcReg[0], data:?});	
+	rule doIF(csrf.started);
+		iMem.req(MemReq{op:Ld, addr:pcReg[0], data:?});	
 		Addr ppc = btb.predPc(pcReg[0]);
 		pcReg[0] <= ppc;
 		if2idFifo.enq(
@@ -105,7 +138,7 @@ module mkProc(Proc);
 	endrule
 
 	// decode
-	rule doID(csrf.started && memReady);
+	rule doID(csrf.started);
 		//
 		let inst <- iMem.resp();
 		let if2id = if2idFifo.first();
@@ -174,7 +207,7 @@ module mkProc(Proc);
 	endrule
 
 	// register fetch
-	rule doRF(csrf.started && memReady);
+	rule doRF(csrf.started);
 		ID2RF id2rf = id2rfFifo.first();
 		DecodedInst dInst = id2rf.dInst;
 		// should fire on valid inst 
@@ -227,7 +260,7 @@ module mkProc(Proc);
 	endrule
 
 	// execute
-	rule doEXE(csrf.started && memReady);
+	rule doEXE(csrf.started);
 		//
 		let rf2exe = rf2exeFifo.first();
 		rf2exeFifo.deq();
@@ -277,7 +310,7 @@ module mkProc(Proc);
 	endrule
 
 	// data memory
-	rule doMEM(csrf.started && memReady);
+	rule doMEM(csrf.started);
 		//
 		let exe2mem = exe2memFifo.first();
 		exe2memFifo.deq();
@@ -310,7 +343,7 @@ module mkProc(Proc);
 	endrule
 
 	// write back
-	rule doWB(csrf.started && memReady);
+	rule doWB(csrf.started);
 		//
 		let mem2wb = mem2wbFifo.first();
 		mem2wbFifo.deq();
@@ -340,13 +373,11 @@ module mkProc(Proc);
         return ret;
     endmethod
 
-    method Action hostToCpu(Bit#(32) startpc) if ( !csrf.started && memReady );
+    method Action hostToCpu(Bit#(32) startpc) if (!csrf.started && !ddr3RespFifo.notEmpty );
 	$display("Start cpu");
         csrf.start(0); // only 1 core, id = 0
         pcReg[0] <= startpc;
     endmethod
 
-	interface iMemInit = iMem.init;
-    interface dMemInit = dMem.init;
 endmodule
 

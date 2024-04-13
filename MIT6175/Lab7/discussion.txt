@@ -1,0 +1,14 @@
+Q1
+
+./run_bmarks.sh withoutcache
+
+median(lab6 10403)
+    53233       4243
+multiply(lab6 36579)
+    225421      20893
+qsort(lab6 289424)
+    1417888     123497
+towers(lab6 6333)
+    36551       4169
+vvadd(lab6 3618)
+    21664       2407

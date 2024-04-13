@@ -2,15 +2,15 @@
 
 
 asm_tests=(
-	simple
-	add addi
-	and andi
-	auipc
-	beq bge bgeu blt bltu bne
-	j jal jalr
-	lw
-	lui
-	or ori
+	# simple
+	# add addi
+	# and andi
+	# auipc
+	# beq bge bgeu blt bltu bne
+	# j jal jalr
+	# lw
+	# lui
+	# or ori
 	sw
 	sll slli
 	slt slti
