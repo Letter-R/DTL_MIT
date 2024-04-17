@@ -21,6 +21,7 @@ export SOFTWARE_SOCKET_NAME
 CONNECTALFLAGS += -D $(VPROC) 
 CONNECTALFLAGS += --bscflags " -D $(VPROC) -steps-max-intervals 50 +RTS -K256M -RTS"
 CONNECTALFLAGS += --bscflags " -show-schedule"
+# CONNECTALFLAGS += --bscflags " -show-range-conflict"
 #CONNECTALFLAGS += --cxxflags="-g -std=gnu++11"
 
 include $(CONNECTALDIR)/Makefile.connectal
@@ -32,4 +33,6 @@ clean:
 simple_compile:
 	mkdir -p buildDir
 	bsc -u -sim -show-schedule -sched-dot -bdir buildDir -info-dir buildDir -simdir buildDir -vdir buildDir -p +:src/includes/ -aggressive-conditions -keep-fires src/WithoutCache.bsv
-	# bsc -sim -e mkProc -bdir buildDir -info-dir buildDir -simdir buildDir -o buildDir/simProc 
+	# bsc -sim -e mkProc -show-range-conflict -bdir buildDir -info-dir buildDir -simdir buildDir -o buildDir/simProc 
+
+	

@@ -40,6 +40,7 @@ typedef struct{
 
 typedef enum {
     Ready,           // init, can read and write
+    ReadMem,
     WaitMemResp,      // if read miss, mem.req
     Resp
 } CacheState deriving (Bits, Eq);
@@ -53,85 +54,95 @@ module mkCache(WideMem wideMem, Cache ifc);
     // I/O of cache
     // Fifo#(2, Addr) memReqFifo  <- mkPipelineFifo();
     // Fifo#(2, Addr) respDataFifo <- mkPipelineFifo();
-
+    
+    //
+    Fifo#(4, CacheBlock) write2memFifo <- mkBypassFifo();
+    Fifo#(4, CacheIndex) writeidxFifo <- mkBypassFifo();
 
     Fifo#(2, Addr) addrFifo <- mkPipelineFifo();
+    Fifo#(2, MemReq) memreqFifo <- mkPipelineFifo();
 
     function CacheTag        getTag(Addr addr) = truncateLSB(addr);
     function CacheIndex      getIndex(Addr addr) = truncate(addr >> 6);
     function CacheWordSelect getOffset(Addr addr) = truncate(addr >> 2);
 
+    rule doReadMen ((cacheState == ReadMem) && (memreqFifo.notEmpty));
+        let r = memreqFifo.first();
+        memreqFifo.deq();
+        // read from mem
+        let w = toWideMemReq(r);
+        wideMem.req(w);
+        //
+        addrFifo.enq(r.addr);
+        cacheState <= WaitMemResp;
+    endrule
 
     // WaitMemResp
-    rule doMem2Cache (cacheState == WaitMemResp);
+    rule doMem2Cache ((cacheState == WaitMemResp) && (!memreqFifo.notEmpty));
         // typedef Vector#(CacheLineWords 16, Data 32) CacheLine;
         let memcacheline <- wideMem.resp();
         let addr = addrFifo.first();
         let idx = getIndex(addr);
         let tag = getTag(addr);
-        if ((storage[idx].state == Invalid) || (storage[idx].state == Valid)) begin
-            storage[idx] <= CacheBlock{
-                state: Valid, 
-                tag:   tag, 
-                data:  memcacheline};
-        end else if (storage[idx].state == Dirty) begin
-            // todo
-        end
+
+        storage[idx] <= CacheBlock{
+            state: Valid, 
+            tag:   tag, 
+            data:  memcacheline};
 
         cacheState <= Resp;
     endrule
 
-    // rule doResp;
-    //     let addr = addrFifo.first();    // Bit#(32)
-    //     addrFifo.deq();
-    //     let idx = getIndex(addr);       // Bit#(3)
-    //     let offset = getOffset(addr);   // Bit#(4)
-    //     let data = storage[idx].data[offset];
-    //     respDataFifo.enq(data);
-    // endrule
-
-    method Action req(MemReq r) if (cacheState == Ready);
+    method Action req(MemReq r) if ((cacheState == Ready) && (!memreqFifo.notEmpty));//
         let  idx = getIndex(r.addr);
         let  tag = getTag(r.addr);
+        let offset = getOffset(r.addr);
         Bool hit = ((tag == storage[idx].tag) && (storage[idx].state != Invalid));
         if (hit) begin
-            // cacheline <= storage[idx];
-            $display("cache hit");
+
             if(r.op == Ld) begin
+                $display("Ld cache hit");
                 addrFifo.enq(r.addr);
                 cacheState <= Resp;
             end else if (r.op == St) begin
-                // todo
+                $display("St cache hit");
+                let tmp = storage[idx];
+                tmp.state = Dirty;
+                tmp.data[offset] = r.data; 
+                storage[idx] <= tmp;            
             end
         end else begin
-            // 
-            $display("cache miss");
-            //
+            // writeback for Dirty 
+            if (storage[idx].state == Dirty) begin
+                Addr addr = {storage[idx].tag, idx, 6'b0};
+                // Addr addr = {storage[idx].tag, 9'b0};
+                wideMem.req(
+                    WideMemReq {
+                        write_en: '1,
+                        addr: addr,
+                        data: storage[idx].data
+                    }
+                );
+            end
             if(r.op == Ld) begin
-                //
-                let w = toWideMemReq(r);
-                wideMem.req(w);
-                // 
-                cacheState <= WaitMemResp;
-                //
-                addrFifo.enq(r.addr);
+                $display("Ld cache miss");
+
+                // to read
+                cacheState <= ReadMem;
+                memreqFifo.enq(r);
+                
             end else if (r.op == St) begin
-                // todo
+                //
+                $display("St cache miss");
+                //
+                let tmp = storage[idx];
+                tmp.state = Dirty;
+                tmp.data[offset] = r.data; 
+                storage[idx] <= tmp;   
             end
         end
     endmethod
     
-
-
-    // typedef CacheLine WideMemResp;
-    // interface WideMem;
-    //     method Action req(WideMemReq r);
-    //     method ActionValue#(CacheLine) resp;
-    // endinterface
-    //
-    // typedef Data MemResp;
-    //                       16         32
-
     method ActionValue#(MemResp) resp if (cacheState == Resp);
         cacheState <= Ready;
         let addr = addrFifo.first();    // Bit#(32)

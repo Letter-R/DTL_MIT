@@ -12,3 +12,21 @@ towers(lab6 6333)
       4169    36551            -->19281
 vvadd(lab6 3618)
        2407    21664           -->7820
+
+
+
+
+
+
+------------------------------
+hit      ld       dirty or valid        read
+hit      st       dirty or valid        write  
+
+miss     ld      invalid or valid       read from mem, read        
+miss     ld           dirty             write to mem, read from mem, read   
+
+miss     st      valid or invalid       write
+miss     st           dirty             write to mem, write    
+
+
+

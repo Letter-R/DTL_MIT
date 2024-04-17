@@ -106,8 +106,8 @@ module mkProc#(Fifo#(2, DDR3_Req)  ddr3ReqFifo, Fifo#(2, DDR3_Resp) ddr3RespFifo
     endrule
 
 
-    Cache iMem <- mkCache(wideMems[1]);
-    Cache dMem <- mkTranslator(wideMems[0]);
+    Cache iMem <- mkTranslator(wideMems[1]);
+    Cache dMem <- mkCache(wideMems[0]);
 
 
 
