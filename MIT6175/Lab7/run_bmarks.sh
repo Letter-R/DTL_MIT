@@ -1,16 +1,16 @@
 #!/bin/bash
 
 asm_tests=(
-	# median # faild Execute: ERROR: Unsupported instruction at PC = 000003c2. Exiting
+	median
 	multiply # passed
 	qsort	
-	towers # faild Execute: ERROR: Unsupported instruction at PC = 00000608. Exiting
-	vvadd # passed
+	towers
+	vvadd
 	)
 
 vmh_dir=programs/build/benchmarks/bin
 log_dir=logs
-wait_time=3
+wait_time=30
 
 # create bsim log dir
 mkdir -p ${log_dir}

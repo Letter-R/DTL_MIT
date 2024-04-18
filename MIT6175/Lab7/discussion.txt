@@ -3,15 +3,15 @@ Q1
 ./run_bmarks.sh withoutcache
 
 median(lab6 10403)           i use cache
-       4243    53233           -->19909
+       4243    53233           -->19909           -->11564
 multiply(lab6 36579)
-      20893    225421          -->43504
+      20893    225421          -->43504           -->43356
 qsort(lab6 289424)
-     123497    1417888         -->682350
+     123497    1417888         -->682350          -->344985
 towers(lab6 6333)
-      4169    36551            -->19281
+      4169    36551            -->19281           -->23736
 vvadd(lab6 3618)
-       2407    21664           -->7820
+       2407    21664           -->7820            -->6242
 
 
 
@@ -25,8 +25,8 @@ hit      st       dirty or valid        write
 miss     ld      invalid or valid       read from mem, read        
 miss     ld           dirty             write to mem, read from mem, read   
 
-miss     st      valid or invalid       write
-miss     st           dirty             write to mem, write    
+miss     st      valid or invalid       read from mem, write
+miss     st           dirty             write to mem, read from mem, write    
 
 
 

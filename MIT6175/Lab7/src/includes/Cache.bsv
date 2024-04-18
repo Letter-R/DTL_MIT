@@ -59,41 +59,76 @@ module mkCache(WideMem wideMem, Cache ifc);
     Fifo#(4, CacheBlock) write2memFifo <- mkBypassFifo();
     Fifo#(4, CacheIndex) writeidxFifo <- mkBypassFifo();
 
-    Fifo#(2, Addr) addrFifo <- mkPipelineFifo();
+    // Fifo#(2, Addr) addrFifo <- mkPipelineFifo();
+    Fifo#(2, MemReq) addrrFifo <- mkPipelineFifo();
     Fifo#(2, MemReq) memreqFifo <- mkPipelineFifo();
 
     function CacheTag        getTag(Addr addr) = truncateLSB(addr);
     function CacheIndex      getIndex(Addr addr) = truncate(addr >> 6);
     function CacheWordSelect getOffset(Addr addr) = truncate(addr >> 2);
 
-    rule doReadMen ((cacheState == ReadMem) && (memreqFifo.notEmpty));
+    rule doReadMen (cacheState == ReadMem);
+        $display("Send Mem Req");
         let r = memreqFifo.first();
         memreqFifo.deq();
         // read from mem
-        let w = toWideMemReq(r);
-        wideMem.req(w);
+        let  idx = getIndex(r.addr);
+        let  tag = getTag(r.addr);
+        Addr addr = {tag, idx, 6'b0};
+        wideMem.req(
+            WideMemReq {
+                write_en: '0,
+                addr: addr,
+                data: replicate(r.data)
+            }
+        );
         //
-        addrFifo.enq(r.addr);
+        addrrFifo.enq(r);
         cacheState <= WaitMemResp;
     endrule
 
     // WaitMemResp
-    rule doMem2Cache ((cacheState == WaitMemResp) && (!memreqFifo.notEmpty));
+    rule doMem2Cache (cacheState == WaitMemResp);
         // typedef Vector#(CacheLineWords 16, Data 32) CacheLine;
         let memcacheline <- wideMem.resp();
-        let addr = addrFifo.first();
+        let r = addrrFifo.first();
+        // let addr = addrFifo.first();
+        let addr = r.addr;
         let idx = getIndex(addr);
         let tag = getTag(addr);
+        let offset = getOffset(addr);
+        $display("Got Mem Resp");
 
-        storage[idx] <= CacheBlock{
-            state: Valid, 
-            tag:   tag, 
-            data:  memcacheline};
+        // cacheState <= Resp;
 
-        cacheState <= Resp;
+        if(r.op == Ld) begin
+            // ready for resp
+            $display("ready for resp");
+            cacheState <= Resp; 
+            
+            storage[idx] <= CacheBlock{
+                state: Valid, 
+                tag:   tag, 
+                data:  memcacheline};
+
+
+        end else if (r.op == St) begin
+            // write to cache, finish
+            $display("write to cache, finish");
+            let tmp = CacheBlock{
+                state: Dirty, 
+                tag:   tag, 
+                data:  memcacheline};
+            tmp.data[offset] = r.data;  
+            storage[idx] <= tmp;
+            //
+            addrrFifo.deq(); 
+            cacheState <= Ready;
+            
+        end
     endrule
 
-    method Action req(MemReq r) if ((cacheState == Ready) && (!memreqFifo.notEmpty));//
+    method Action req(MemReq r) if (cacheState == Ready);//
         let  idx = getIndex(r.addr);
         let  tag = getTag(r.addr);
         let offset = getOffset(r.addr);
@@ -102,19 +137,20 @@ module mkCache(WideMem wideMem, Cache ifc);
 
             if(r.op == Ld) begin
                 $display("Ld cache hit");
-                addrFifo.enq(r.addr);
+                addrrFifo.enq(r);
                 cacheState <= Resp;
             end else if (r.op == St) begin
                 $display("St cache hit");
                 let tmp = storage[idx];
                 tmp.state = Dirty;
-                tmp.tag = tag;
                 tmp.data[offset] = r.data; 
-                storage[idx] <= tmp;            
+                storage[idx] <= tmp; 
+                cacheState <= Ready;           
             end
         end else begin
             // writeback for Dirty 
             if (storage[idx].state == Dirty) begin
+                $display("writeback Dirty data");
                 Addr addr = {storage[idx].tag, idx, 6'b0};
                 // Addr addr = {storage[idx].tag, 9'b0};
                 wideMem.req(
@@ -125,30 +161,18 @@ module mkCache(WideMem wideMem, Cache ifc);
                     }
                 );
             end
-            if(r.op == Ld) begin
-                $display("Ld cache miss");
+            $display("cache miss");
+            cacheState <= ReadMem;
+            memreqFifo.enq(r);
 
-                // to read
-                cacheState <= ReadMem;
-                memreqFifo.enq(r);
-                
-            end else if (r.op == St) begin
-                //
-                $display("St cache miss");
-                //
-                let tmp = storage[idx];
-                tmp.state = Dirty;
-                tmp.tag = tag;
-                tmp.data[offset] = r.data; 
-                storage[idx] <= tmp;   
-            end
         end
     endmethod
     
     method ActionValue#(MemResp) resp if (cacheState == Resp);
+        $display("Ld finish");
         cacheState <= Ready;
-        let addr = addrFifo.first();    // Bit#(32)
-        addrFifo.deq();
+        let addr = addrrFifo.first().addr;    // Bit#(32)
+        addrrFifo.deq();
         let idx = getIndex(addr);       // Bit#(3)
         let offset = getOffset(addr);   // Bit#(4)
         return storage[idx].data[offset];
