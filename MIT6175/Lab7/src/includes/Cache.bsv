@@ -108,6 +108,7 @@ module mkCache(WideMem wideMem, Cache ifc);
                 $display("St cache hit");
                 let tmp = storage[idx];
                 tmp.state = Dirty;
+                tmp.tag = tag;
                 tmp.data[offset] = r.data; 
                 storage[idx] <= tmp;            
             end
@@ -137,6 +138,7 @@ module mkCache(WideMem wideMem, Cache ifc);
                 //
                 let tmp = storage[idx];
                 tmp.state = Dirty;
+                tmp.tag = tag;
                 tmp.data[offset] = r.data; 
                 storage[idx] <= tmp;   
             end
