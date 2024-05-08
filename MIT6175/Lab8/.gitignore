@@ -1,0 +1,16 @@
+programs/build
+scemi/sim/*.log
+scemi/sim/*.so
+scemi/sim/*_dut
+scemi/sim/tb
+scemi/sim/tbinclude
+scemi/sim/*.bspec
+scemi/sim/scemi.params
+scemi/sim/logs/
+scemi/sim/*.vmh
+buildDir
+bluesim
+logs
+ply-3.9
+connectal
+programs
