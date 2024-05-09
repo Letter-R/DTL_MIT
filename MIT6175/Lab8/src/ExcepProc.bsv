@@ -30,7 +30,14 @@ module mkProc(Proc);
 
         // decode
         // TODO: fill the second param.
+        // status[2:0] corresponds to the top of the stack, and contains the current PRV and IE bits
+        // privilege/user mode (PRV) 
+        // 2'b00 > user mode; 2'b11 > machine (privileged) mode
+        // ban eret and csrrw in user mode
         DecodedInst dInst = decode(inst, csrf.getMstatus()[2:1] == 2'b00);
+        // interrupt enable (IE);       1 > interrupts are enabled
+
+
 
         // trace - print the instruction
         $display("pc: %h inst: (%h) expanded: ", pc, inst, showInst(inst));
@@ -66,30 +73,42 @@ module mkProc(Proc);
 		else if(eInst.iType == Unsupported) begin
 			$display("Unsupported instruction. Trap");
 			// TODO: unsupported instruction exception
-            let curState = csrf.getMstatus();
-            let newState = (curState << 3);
-            newState[2:1] = 2'b11; // machine mode
-            newState[0] = 0;  // disable interrupt in new mode
-            csrf.startExcep(pc, excepUnsupport, newState);
-            pc <= csrf.getMtvec();
+
+            // set mepc and mcause
+            let mepc = pc;
+            let mcause = excepUnsupport;
+            // push the new PRV and IE bits into the stack of mstatus,
+            let mstatus = {csrf.getMstatus[31:3],2'b11,1'b0};
+            // chage PC to mtvec.
+            pc <= csrf.getMtvec;
+
+            csrf.startExcep(mepc, mcause, mstatus);
 		end
 		else if(eInst.iType == ECall) begin
 			$display("System call. Trap");
 			// TODO: system call exception
-            let curState = csrf.getMstatus();
-            let newState = (curState << 3);
-            newState[2:1] = 2'b11; // machine mode
-            newState[0] = 0;  // disable interrupt in new mode
-            csrf.startExcep(pc, excepUserECall, newState);
-            pc <= csrf.getMtvec();
+            // set mepc and mcause
+            let mepc = pc;
+            let mcause = excepUserECall;
+            // push the new PRV and IE bits into the stack of mstatus,
+            let mstatus = {csrf.getMstatus[31:3],2'b11,1'b1};
+            // chage PC to mtvec.
+            pc <= csrf.getMtvec;
+
+            csrf.startExcep(mepc, mcause, mstatus);
+
 		end
 		else if(eInst.iType == ERet) begin
 			$display("ERET");
 			// TODO: return from exception
-            let curState = csrf.getMstatus();
-            let newState = (curState >> 3);
-            csrf.eret(newState);
-            pc <= csrf.getMepc();
+            // pop the stack of mstatus 
+            
+            let mstatus = csrf.getMstatus;
+            // let lPRV = mstatus[2:1];
+            // let lIE = mstatus[0];
+            csrf.eret(mstatus >> 3);
+            // change PC to mepc
+            pc <= csrf.getMepc;
 		end
 		else begin
 			// normal inst
